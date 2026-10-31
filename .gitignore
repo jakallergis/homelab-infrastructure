@@ -4,3 +4,20 @@
 .env
 .env.*
 !.env.example
+
+# Python and tool caches
+.venv/
+__pycache__/
+.pytest_cache/
+.ansible/
+
+# Secrets: never commit these
+.vault-pass*
+*.pem
+*.key
+
+# OpenTofu state and variables can contain secrets
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/

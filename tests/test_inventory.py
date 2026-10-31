@@ -1,0 +1,99 @@
+"""Check the inventory against the rules in docs/architecture-target.md."""
+
+from ipaddress import ip_address
+from pathlib import Path
+
+import pytest
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+INVENTORY = yaml.safe_load((ROOT / "inventory/hosts.yml").read_text())
+GROUP_VARS = yaml.safe_load((ROOT / "inventory/group_vars/all.yml").read_text())
+
+
+def walk(group):
+    """Yield (name, vars) for each host in a group and in its child groups."""
+    for name, host_vars in (group.get("hosts") or {}).items():
+        yield name, host_vars or {}
+    for child in (group.get("children") or {}).values():
+        yield from walk(child)
+
+
+def find_group(name, group=INVENTORY["all"]):
+    children = group.get("children") or {}
+    if name in children:
+        return children[name]
+    for child in children.values():
+        found = find_group(name, child)
+        if found is not None:
+            return found
+    return None
+
+
+def host_names(group_name):
+    return [name for name, _ in walk(find_group(group_name))]
+
+
+# A host can be in two groups (pve02 is also a Tailscale router), so merge its vars.
+HOSTS = {}
+for host, values in walk(INVENTORY["all"]):
+    HOSTS.setdefault(host, {}).update(values)
+
+GUESTS = {name: values for name, values in HOSTS.items() if name not in host_names("proxmox")}
+VIP = GROUP_VARS["edge_vip"]
+
+
+def address(host):
+    return HOSTS[host]["ansible_host"]
+
+
+def test_every_host_has_an_address():
+    assert [name for name, values in HOSTS.items() if "ansible_host" not in values] == []
+
+
+def test_addresses_are_unique():
+    addresses = [address(name) for name in HOSTS]
+    assert len(addresses) == len(set(addresses))
+
+
+def test_addresses_are_in_the_homelab_range():
+    first, last = ip_address("192.168.0.2"), ip_address("192.168.0.149")
+    assert [name for name in HOSTS if not first <= ip_address(address(name)) <= last] == []
+
+
+def test_floating_ip_is_not_assigned_to_a_host():
+    assert VIP not in [address(name) for name in HOSTS]
+
+
+def test_total_address_count():
+    assert len(HOSTS) + 1 == 12  # 11 hosts plus the floating IP
+
+
+def test_guest_ids_follow_the_address():
+    wrong = [
+        name
+        for name, values in GUESTS.items()
+        if values.get("vmid") != 100 + int(values["ansible_host"].rsplit(".", 1)[1])
+    ]
+    assert wrong == []
+
+
+def test_guests_run_on_a_known_node():
+    nodes = host_names("proxmox")
+    assert [name for name, values in GUESTS.items() if values.get("pve_node") not in nodes] == []
+
+
+def test_exactly_two_edge_nodes():
+    assert len(host_names("edge")) == 2
+
+
+def test_exactly_two_tailscale_routers_on_proxmox_hosts():
+    routers = host_names("tailscale_routers")
+    assert len(routers) == 2
+    assert set(routers) <= set(host_names("proxmox"))
+
+
+@pytest.mark.parametrize("group", ["edge", "dns", "swarm_managers"])
+def test_redundant_members_are_on_separate_nodes(group):
+    nodes = [HOSTS[name]["pve_node"] for name in host_names(group)]
+    assert len(nodes) == len(set(nodes))

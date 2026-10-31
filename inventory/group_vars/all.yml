@@ -1,0 +1,5 @@
+---
+lan_gateway: 192.168.0.1
+lab_domain: lab.krikri.dev
+# Floating IP held by edge01 or edge02. It is an address, not a host.
+edge_vip: 192.168.0.30

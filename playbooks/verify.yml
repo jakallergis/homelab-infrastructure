@@ -1,0 +1,8 @@
+---
+# Strictly read-only health checks.
+- name: Check that the Proxmox hosts answer
+  hosts: proxmox
+  gather_facts: false
+  tasks:
+    - name: Connect over SSH and run the Ansible ping module
+      ansible.builtin.ping:
