@@ -4,8 +4,7 @@ Infrastructure as Code for a personal homelab: three Proxmox nodes, Docker Swarm
 and Home Assistant. The design is in [`docs/architecture-target.md`](docs/architecture-target.md).
 Rules for AI sessions and the order of work are in [`AGENTS.md`](AGENTS.md).
 
-**Status:** repo foundation and Proxmox base code. Nothing in this repo has been applied to a real
-machine.
+**Status:** the Proxmox base is applied to all three nodes. No guests exist yet.
 
 ## Requirements
 
@@ -43,7 +42,7 @@ and cannot reach the LAN. The secret scan reads the current files only, not Git 
 | `playbooks/verify.yml` | Read-only health checks |
 | `roles/` | Ansible roles |
 | `tests/` | Offline tests |
-| `docs/` | The target design, and later the runbooks |
+| `docs/` | The target design and the runbooks |
 
 ## Running against real machines
 

@@ -57,9 +57,7 @@ Work in small milestones. For each one:
 ## Order of work
 
 1. **Repo foundation.** Done.
-2. **Proxmox base.** The 3-node cluster `homelab` already exists and is quorate. Ansible for host
-   basics: no-subscription package repositories, NTP, basic packages, storage facts. Read-only verify
-   first.
+2. **Proxmox base.** Done. See `docs/runbooks/proxmox.md`.
 3. **Remote access.** A `tailscale_router` role for `pve02` and `pve03`: identical `/32` routes from
    the inventory, IP forwarding, one router per run, with the owner's manual route approval in the
    Tailscale admin console in between. Split DNS comes after step 5. Set up Ansible Vault at the first
