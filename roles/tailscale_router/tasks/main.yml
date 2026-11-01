@@ -47,12 +47,53 @@
         name: tailscale
         state: present
 
+    - name: Read the Tailscale login state
+      ansible.builtin.command: tailscale status --json
+      register: tailscale_router_status
+      changed_when: false
+
+    - name: Log in to the tailnet
+      when: (tailscale_router_status.stdout | from_json).BackendState != 'Running'
+      block:
+        # "tailscale up" waits for the browser login, so it runs in the background.
+        # It needs all flags: without them, it resets the routes and accept-dns.
+        - name: Start the login
+          ansible.builtin.command: "tailscale up {{ tailscale_router_args }}"
+          async: 1800
+          poll: 0
+          changed_when: true
+
+        - name: Wait for the login URL
+          ansible.builtin.command: tailscale status --json
+          register: tailscale_router_login
+          changed_when: false
+          until: (tailscale_router_login.stdout | from_json).AuthURL | default('', true) | length > 0
+          retries: 12
+          delay: 5
+
+        - name: Pause for the browser login
+          ansible.builtin.pause:
+            prompt: |-
+
+              1. Open this URL and log in: {{ (tailscale_router_login.stdout | from_json).AuthURL }}
+              2. In the admin console, approve the routes of {{ inventory_hostname }}.
+              3. In the admin console, disable key expiry for {{ inventory_hostname }}.
+              Then press Enter
+
+        - name: Check that the login worked
+          ansible.builtin.command: tailscale status --json
+          register: tailscale_router_login
+          changed_when: false
+          until: (tailscale_router_login.stdout | from_json).BackendState == 'Running'
+          retries: 6
+          delay: 5
+
     - name: Read the Tailscale settings
       ansible.builtin.command: tailscale debug prefs
       register: tailscale_router_prefs
       changed_when: false
 
-    # Plain "tailscale up" or "tailscale login" resets these settings. This task puts them back.
+    # The login sets these. This task repairs them if they change later.
     - name: Apply the Tailscale settings
       ansible.builtin.command: "tailscale set {{ tailscale_router_args }}"
       changed_when: true
@@ -62,13 +103,3 @@
         (tailscale_router_current.AdvertiseRoutes | default([], true) | sort) != (tailscale_router_routes | sort)
         or tailscale_router_current.CorpDNS
         or tailscale_router_current.RouteAll
-
-    - name: Read the Tailscale login state
-      ansible.builtin.command: tailscale status --json
-      register: tailscale_router_status
-      changed_when: false
-
-    - name: Show the login command
-      ansible.builtin.debug:
-        msg: "Not logged in. On {{ inventory_hostname }}, run: tailscale up {{ tailscale_router_args }}"
-      when: (tailscale_router_status.stdout | from_json).BackendState != 'Running'

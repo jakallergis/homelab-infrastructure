@@ -119,8 +119,8 @@ Remove each item once it is answered.
   before the first connection.
 - A bare expression in `assert` or `when` reads `'\b'` as a backspace, but `{{ }}` does not. Test an
   assertion in its real form, not wrapped in `{{ }}`.
-- Plain `tailscale up` and `tailscale login` reset the routes and `accept-dns`. Log in only with the
-  full flags that the role prints.
+- Plain `tailscale up` and `tailscale login` reset the routes and `accept-dns`. The role logs in with
+  the full flags. Do not log in by hand.
 - `failed_when: false` / `ignore_errors` hide real failures. Use them only with an explicit assertion
   afterwards.
 - Keepalived 2.x refuses track scripts unless `global_defs` has `enable_script_security` (and
