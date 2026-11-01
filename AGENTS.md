@@ -58,10 +58,8 @@ Work in small milestones. For each one:
 
 1. **Repo foundation.** Done.
 2. **Proxmox base.** Done. See `docs/runbooks/proxmox.md`.
-3. **Remote access.** A `tailscale_router` role for `pve02` and `pve03`: identical `/32` routes from
-   the inventory, IP forwarding, one router per run (the role fails without `--limit`), with the
-   owner's manual login and route approval in the Tailscale admin console in between. Split DNS comes
-   after step 5. Set up Ansible Vault at the first milestone that needs a secret.
+3. **Remote access.** Done, except split DNS, which comes after step 5. See
+   `docs/runbooks/tailscale.md`. Set up Ansible Vault at the first milestone that needs a secret.
 4. **Guest provisioning with OpenTofu** (`bpg/proxmox`). The Debian 13 generic cloud image must be on
    each node's local storage (no cross-node cloning). Cloud-Init sets static IP, hostname, user `john`,
    password (from the secret store) and installs `qemu-guest-agent`. Start with one guest, review the

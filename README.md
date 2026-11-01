@@ -4,7 +4,7 @@ Infrastructure as Code for a personal homelab: three Proxmox nodes, Docker Swarm
 and Home Assistant. The design is in [`docs/architecture-target.md`](docs/architecture-target.md).
 Rules for AI sessions and the order of work are in [`AGENTS.md`](AGENTS.md).
 
-**Status:** the Proxmox base is applied to all three nodes. No guests exist yet.
+**Status:** the Proxmox base and the Tailscale routers are live. No guests exist yet.
 
 ## Requirements
 
@@ -38,7 +38,7 @@ and cannot reach the LAN. The secret scan reads the current files only, not Git 
 |---|---|
 | `inventory/hosts.yml` | The one source for hosts, addresses and guest IDs |
 | `inventory/group_vars/` | Variables for each group |
-| `playbooks/site.yml` | Applies the desired state, one host at a time |
+| `playbooks/site.yml` | Applies the desired state, one host at a time. Needs `--limit` for a real run, to select one Tailscale router |
 | `playbooks/verify.yml` | Read-only health checks |
 | `roles/` | Ansible roles |
 | `tests/` | Offline tests |

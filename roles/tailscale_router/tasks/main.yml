@@ -63,15 +63,19 @@
           poll: 0
           changed_when: true
 
+        # A node after "tailscale down" is still logged in. It goes straight to Running, with no URL.
         - name: Wait for the login URL
           ansible.builtin.command: tailscale status --json
           register: tailscale_router_login
           changed_when: false
-          until: (tailscale_router_login.stdout | from_json).AuthURL | default('', true) | length > 0
+          until: >-
+            (tailscale_router_login.stdout | from_json).AuthURL | default('', true) | length > 0
+            or (tailscale_router_login.stdout | from_json).BackendState == 'Running'
           retries: 12
           delay: 5
 
         - name: Pause for the browser login
+          when: (tailscale_router_login.stdout | from_json).BackendState != 'Running'
           ansible.builtin.pause:
             prompt: |-
 
