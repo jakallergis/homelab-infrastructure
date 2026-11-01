@@ -19,7 +19,8 @@ Work in small milestones. For each one:
 2. Wait for the owner's OK.
 3. Write the code and run offline tests.
 4. Explain in ASD-STE100 what each new file does.
-5. The owner reviews and commits.
+5. The owner reviews and commits. Each time you finish updating files, give a short commit message
+   for that iteration.
 6. Only then, if the milestone touches real machines, ask for approval for that specific live action.
 
 - **Don't build ahead.** No placeholder roles, speculative variables or files for later milestones.
