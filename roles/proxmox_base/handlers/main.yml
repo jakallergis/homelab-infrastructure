@@ -1,0 +1,4 @@
+---
+- name: Refresh the package index
+  ansible.builtin.apt:
+    update_cache: true

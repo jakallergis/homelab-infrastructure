@@ -6,3 +6,45 @@
   tasks:
     - name: Connect over SSH and run the Ansible ping module
       ansible.builtin.ping:
+
+- name: Check the Proxmox cluster, storage and time
+  hosts: proxmox
+  gather_facts: false
+  tasks:
+    - name: Read the cluster status
+      ansible.builtin.command: pvecm status
+      register: verify_cluster
+      changed_when: false
+      check_mode: false
+
+    - name: Check quorum and the member count
+      ansible.builtin.assert:
+        that:
+          - verify_cluster.stdout is search('Quorate:\s+Yes')
+          - verify_cluster.stdout is search('^Nodes:\s+' ~ groups['proxmox'] | length ~ '$', multiline=True)
+        quiet: true
+
+    - name: Read the storage status
+      ansible.builtin.command: pvesm status
+      register: verify_storage
+      changed_when: false
+      check_mode: false
+
+    - name: Check that the storages are active
+      ansible.builtin.assert:
+        that:
+          - verify_storage.stdout is search('^local\s+\S+\s+active', multiline=True)
+          - verify_storage.stdout is search('^local-lvm\s+\S+\s+active', multiline=True)
+        quiet: true
+
+    - name: Read the time sync state
+      ansible.builtin.command: timedatectl show --property=NTPSynchronized --value
+      register: verify_time
+      changed_when: false
+      check_mode: false
+
+    - name: Check that the clock is synchronized
+      ansible.builtin.assert:
+        that:
+          - verify_time.stdout == 'yes'
+        quiet: true

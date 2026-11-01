@@ -13,7 +13,11 @@ clustering gives a single management plane and quorum, not automatic application
 |---|---|---|
 | `pve01` | `192.168.0.11` | Dell OptiPlex 3080 Micro, i5-10500T, 32 GB RAM, 1 TB NVMe |
 | `pve02` | `192.168.0.12` | Dell OptiPlex 3080 Micro, i3-10100T, 32 GB RAM, 256 GB NVMe |
-| `pve03` | `192.168.0.13` | Dell OptiPlex 3080 Micro, i3-10100T, 16 GB RAM, ~128 GB NVMe |
+| `pve03` | `192.168.0.13` | Dell OptiPlex 3080 Micro, i3-10100T, 16 GB RAM, 128 GB NVMe |
+
+All nodes run PVE 9.2.2 and are joined in the cluster `homelab`. Each node has the storages `local`
+(directory: images and templates) and `local-lvm` (LVM-thin: guest disks). The `local-lvm` pools are
+794 GiB on `pve01`, 141 GiB on `pve02` and 54 GiB on `pve03`.
 
 ## Network
 
@@ -34,7 +38,7 @@ VM/CT ID = 100 + last octet of the guest's IP (e.g. `docker01` at `.21` → ID 1
 | `.11`–`.13` | `pve01`–`pve03` | Proxmox hosts | — | — | — | Hypervisors; `pve02` and `pve03` also run Tailscale |
 | `.20` | `homeassistant` | VM (HAOS) | pve02 | 120 | 2 vCPU, 4 GB, 64 GB | Home Assistant OS |
 | `.21` | `docker01` | VM (Debian 13) | pve01 | 121 | 6 vCPU, 8 GB, 80 GB | Swarm manager |
-| `.22` | `docker02` | VM (Debian 13) | pve02 | 122 | 4 vCPU, 8 GB, 60 GB | Swarm manager |
+| `.22` | `docker02` | VM (Debian 13) | pve02 | 122 | 4 vCPU, 8 GB, 40 GB | Swarm manager |
 | `.23` | `docker03` | VM (Debian 13) | pve03 | 123 | 4 vCPU, 4 GB, 40 GB | Swarm manager |
 | `.30` | *floating IP* | VRRP VIP | edge01/edge02 | — | — | HTTPS entry point for `*.lab.krikri.dev` |
 | `.31` | `dns01` | LXC (Debian 13, unprivileged) | pve03 | 131 | 1 core, 512 MB, 8 GB | AdGuard Home, primary |
@@ -149,7 +153,7 @@ the LAN.
 
 ## Backups and recovery
 
-- Proxmox `vzdump` backups of all guests to a NAS (UGREEN, availability to confirm), plus Home
+- Proxmox `vzdump` backups of all guests to a NAS (UGREEN, not available yet), plus Home
   Assistant's native backups, AdGuard configuration, Portainer data, and encrypted copies of
   TLS/secret material.
 - At least one restore test for each class (VM, LXC, application data, secrets) before the

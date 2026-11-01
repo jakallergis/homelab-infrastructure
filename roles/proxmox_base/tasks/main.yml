@@ -1,0 +1,50 @@
+---
+# Enabled must be the first line: at the end of the file it can land in a new, empty stanza.
+- name: Disable the enterprise repositories
+  ansible.builtin.lineinfile:
+    path: "/etc/apt/sources.list.d/{{ item }}"
+    regexp: '^Enabled:'
+    line: 'Enabled: false'
+    insertbefore: BOF
+  loop:
+    - pve-enterprise.sources
+    - ceph.sources
+  notify: Refresh the package index
+
+- name: Add the no-subscription repository
+  ansible.builtin.copy:
+    src: pve-no-subscription.sources
+    dest: /etc/apt/sources.list.d/pve-no-subscription.sources
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Refresh the package index
+
+# The apt module cannot print URIs. A check-mode run skips this: it has not changed the files.
+- name: List the active repositories without a download
+  ansible.builtin.command: apt-get update --print-uris # noqa: command-instead-of-module
+  register: proxmox_base_uris
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Check that only the no-subscription repository is active
+  ansible.builtin.assert:
+    that:
+      - "'enterprise.proxmox.com' not in proxmox_base_uris.stdout"
+      - "'pve-no-subscription' in proxmox_base_uris.stdout"
+    quiet: true
+  when: not ansible_check_mode
+
+- name: Run the package index refresh now if a repository changed
+  ansible.builtin.meta: flush_handlers
+
+- name: Install the basic packages
+  ansible.builtin.apt:
+    name: "{{ proxmox_base_packages }}"
+    state: present
+
+- name: Keep the NTP service running
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true

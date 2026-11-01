@@ -1,0 +1,7 @@
+---
+proxmox_base_packages:
+  - chrony
+  - curl
+  - htop
+  - tmux
+  - vim

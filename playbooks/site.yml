@@ -1,0 +1,6 @@
+---
+- name: Configure the Proxmox hosts
+  hosts: proxmox
+  serial: 1
+  roles:
+    - proxmox_base

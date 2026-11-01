@@ -55,10 +55,10 @@ Work in small milestones. For each one:
 
 ## Order of work
 
-1. **Repo foundation.** Done in code.
-2. **Proxmox base.** Confirm or create the 3-node cluster, before any guest exists (a runbook is fine
-   for one-time steps). Ansible for host basics: package repositories, NTP, basic packages, storage
-   facts. Read-only verify first.
+1. **Repo foundation.** Done.
+2. **Proxmox base.** The 3-node cluster `homelab` already exists and is quorate. Ansible for host
+   basics: no-subscription package repositories, NTP, basic packages, storage facts. Read-only verify
+   first.
 3. **Remote access.** A `tailscale_router` role for `pve02` and `pve03`: identical `/32` routes from
    the inventory, IP forwarding, one router per run, with the owner's manual route approval in the
    Tailscale admin console in between. Split DNS comes after step 5. Set up Ansible Vault at the first
@@ -71,7 +71,8 @@ Work in small milestones. For each one:
    Debian 13 container template and another way to create `john`, and the target doesn't name the
    resolver for guests, which exist before DNS does. Proxmox hosts stay off `.31`/`.32`.
 5. **DNS.** AdGuard Home on `dns01`/`dns02` (unprivileged LXCs), wildcard `*.lab.krikri.dev` →
-   `192.168.0.30`. Verify both resolve independently. Then the owner changes the router's DHCP DNS to
+   `192.168.0.30`, upstream Cloudflare and Quad9 over DoT or DoH. Verify both resolve independently.
+   Then the owner changes the router's DHCP DNS to
    `.31`/`.32`, and you add Tailscale split DNS.
 6. **Docker hosts and Swarm.** A `docker_host` role (Engine + Compose plugin from Docker's repo,
    pinned), Swarm init/join as a separate bootstrap step, 3 managers.
@@ -90,22 +91,23 @@ Work in small milestones. For each one:
 
    Test each edge directly on its own IP before VRRP. Enable VRRP on `edge01`, verify, then `edge02`,
    then do a failover drill with approval.
-9. **Home Assistant.** HAOS VM via OpenTofu. HAProxy route direct to `.20:8123`. Configure
+9. **Home Assistant.** HAOS VM via OpenTofu, no USB passthrough for now (HAOS is on `pve02`, so a
+   stick can be added there later). HAProxy route direct to `.20:8123`. Configure
    `use_x_forwarded_for` and `trusted_proxies` (`.33`, `.34`) in HA before testing through the edge.
 10. **Backups and recovery.** vzdump jobs to the NAS, HA backups, AdGuard, Portainer data and encrypted
-    secrets, then a restore test for each class. Runbooks.
+    secrets, then a restore test for each class. Runbooks. The NAS is not available yet, so this step
+    is blocked on it.
 
 ## UNKNOWN
 
 Remove each item once it is answered.
 
-- Proxmox: cluster state, PVE version, storage names, exact `pve03` disk size.
-- Proxmox package repositories: no-subscription or enterprise.
-- Tailscale: whether a tailnet exists.
-- Cloudflare: whether a DNS-01 token exists (Zone DNS Edit on `krikri.dev`).
-- NAS: availability, address, protocol, free space.
-- Home Assistant: USB devices to pass through (this ties HAOS to one node).
-- AdGuard: upstream resolvers.
+- NAS: address, protocol, free space (the NAS is not available yet).
+
+## Accounts
+
+- Tailnet: `tail8b0eff.ts.net`.
+- A Cloudflare API token exists. It is not in this repo yet.
 
 ## Technical notes
 
