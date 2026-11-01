@@ -1,0 +1,8 @@
+---
+- name: Refresh the package index
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Apply the IP forwarding setting
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/99-tailscale.conf
+  changed_when: true

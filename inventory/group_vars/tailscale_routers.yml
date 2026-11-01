@@ -1,0 +1,9 @@
+---
+# One list for both routers: a /32 for each homelab address and the floating IP.
+tailscale_router_routes: >-
+  {{ (groups['all'] | map('extract', hostvars, 'ansible_host') | list + [edge_vip])
+     | map('regex_replace', '$', '/32') | sort }}
+tailscale_router_args: >-
+  --advertise-routes={{ tailscale_router_routes | join(',') }}
+  --accept-dns=false
+  --accept-routes=false

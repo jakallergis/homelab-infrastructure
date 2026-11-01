@@ -4,3 +4,9 @@
   serial: 1
   roles:
     - proxmox_base
+
+- name: Configure the Tailscale routers
+  hosts: tailscale_routers
+  serial: 1
+  roles:
+    - tailscale_router

@@ -1,5 +1,7 @@
 """Check the inventory against the rules in docs/architecture-target.md."""
 
+import json
+import subprocess
 from ipaddress import ip_address
 from pathlib import Path
 
@@ -97,3 +99,26 @@ def test_exactly_two_tailscale_routers_on_proxmox_hosts():
 def test_redundant_members_are_on_separate_nodes(group):
     nodes = [HOSTS[name]["pve_node"] for name in host_names(group)]
     assert len(nodes) == len(set(nodes))
+
+
+def rendered_routes(host):
+    """Render the real route list with Ansible. The debug module does not connect to the host."""
+    output = subprocess.run(
+        ["ansible", host, "-c", "local", "-m", "debug", "-a", "var=tailscale_router_routes"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return json.loads(output.split("=>", 1)[1])["tailscale_router_routes"]
+
+
+def test_routers_advertise_identical_routes():
+    assert rendered_routes("pve02") == rendered_routes("pve03")
+
+
+def test_routes_are_a_32_for_each_homelab_address():
+    expected = {f"{address(name)}/32" for name in HOSTS} | {f"{VIP}/32"}
+    routes = rendered_routes("pve02")
+    assert len(routes) == 12
+    assert set(routes) == expected

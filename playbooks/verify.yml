@@ -48,3 +48,36 @@
         that:
           - verify_time.stdout == 'yes'
         quiet: true
+
+- name: Check the Tailscale routers
+  hosts: tailscale_routers
+  gather_facts: false
+  tasks:
+    - name: Read the Tailscale login state
+      ansible.builtin.command: tailscale status --json
+      register: verify_tailscale_status
+      changed_when: false
+      check_mode: false
+
+    - name: Read the Tailscale settings
+      ansible.builtin.command: tailscale debug prefs
+      register: verify_tailscale_prefs
+      changed_when: false
+      check_mode: false
+
+    - name: Read the IP forwarding setting
+      ansible.builtin.slurp:
+        src: /proc/sys/net/ipv4/ip_forward
+      register: verify_ip_forward
+
+    - name: Check the login, the routes and IP forwarding
+      ansible.builtin.assert:
+        that:
+          - (verify_tailscale_status.stdout | from_json).BackendState == 'Running'
+          - (verify_prefs.AdvertiseRoutes | default([], true) | sort) == (tailscale_router_routes | sort)
+          - not verify_prefs.CorpDNS
+          - not verify_prefs.RouteAll
+          - (verify_ip_forward.content | b64decode | trim) == '1'
+        quiet: true
+      vars:
+        verify_prefs: "{{ verify_tailscale_prefs.stdout | from_json }}"

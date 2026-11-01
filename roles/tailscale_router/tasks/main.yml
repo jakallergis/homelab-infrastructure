@@ -1,0 +1,74 @@
+---
+# The two routers are the remote access path. Never change both in one operation.
+- name: Check that this run changes one router
+  ansible.builtin.assert:
+    that:
+      - ansible_play_hosts_all | length == 1
+    fail_msg: Select one router with --limit.
+    quiet: true
+  when: not ansible_check_mode
+
+- name: Add the Tailscale signing key
+  ansible.builtin.get_url:
+    url: https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg
+    dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+    checksum: sha256:3e03dacf222698c60b8e2f990b809ca1b3e104de127767864284e6c228f1fb39
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Add the Tailscale repository
+  ansible.builtin.copy:
+    src: tailscale.sources
+    dest: /etc/apt/sources.list.d/tailscale.sources
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Refresh the package index
+
+- name: Turn on IP forwarding
+  ansible.builtin.copy:
+    content: "net.ipv4.ip_forward = 1\n"
+    dest: /etc/sysctl.d/99-tailscale.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Apply the IP forwarding setting
+
+- name: Run the handlers now if a file changed
+  ansible.builtin.meta: flush_handlers
+
+# A check-mode run skips this: the package is not in the index until the repository is really added.
+- name: Install and configure Tailscale
+  when: not ansible_check_mode
+  block:
+    - name: Install Tailscale
+      ansible.builtin.apt:
+        name: tailscale
+        state: present
+
+    - name: Read the Tailscale settings
+      ansible.builtin.command: tailscale debug prefs
+      register: tailscale_router_prefs
+      changed_when: false
+
+    # Plain "tailscale up" or "tailscale login" resets these settings. This task puts them back.
+    - name: Apply the Tailscale settings
+      ansible.builtin.command: "tailscale set {{ tailscale_router_args }}"
+      changed_when: true
+      vars:
+        tailscale_router_current: "{{ tailscale_router_prefs.stdout | from_json }}"
+      when: >-
+        (tailscale_router_current.AdvertiseRoutes | default([], true) | sort) != (tailscale_router_routes | sort)
+        or tailscale_router_current.CorpDNS
+        or tailscale_router_current.RouteAll
+
+    - name: Read the Tailscale login state
+      ansible.builtin.command: tailscale status --json
+      register: tailscale_router_status
+      changed_when: false
+
+    - name: Show the login command
+      ansible.builtin.debug:
+        msg: "Not logged in. On {{ inventory_hostname }}, run: tailscale up {{ tailscale_router_args }}"
+      when: (tailscale_router_status.stdout | from_json).BackendState != 'Running'
