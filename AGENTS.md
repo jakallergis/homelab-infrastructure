@@ -60,13 +60,12 @@ Work in small milestones. For each one:
 2. **Proxmox base.** Done. See `docs/runbooks/proxmox.md`.
 3. **Remote access.** Done, except split DNS, which comes after step 5. See
    `docs/runbooks/tailscale.md`. Set up Ansible Vault at the first milestone that needs a secret.
-4. **Guest provisioning with OpenTofu** (`bpg/proxmox`). The Debian 13 generic cloud image must be on
-   each node's local storage (no cross-node cloning). Cloud-Init sets static IP, hostname, user `john`,
-   password (from the secret store) and installs `qemu-guest-agent`. Start with one guest, review the
-   plan together, then add the rest. Decide with the owner how OpenTofu authenticates (a dedicated
-   user's API token is preferred) and where state lives. Also settle two gaps: LXC guests need a
-   Debian 13 container template and another way to create `john`, and the target doesn't name the
-   resolver for guests, which exist before DNS does. Proxmox hosts stay off `.31`/`.32`.
+4. **Guest provisioning with OpenTofu** (`bpg/proxmox`). Code is in `tofu/`, run through `tofu/run.sh`.
+   Cloud-Init sets the static IP, hostname, user `john`, password and installs `qemu-guest-agent`. The
+   image is on each node's local storage (no cross-node cloning). A guest is provisioned once the
+   inventory gives it a size. Start with `edge01`, review the plan together, then add the rest. LXC
+   guests need a Debian 13 container template and another way to create `john`. Proxmox hosts stay off
+   `.31`/`.32`.
 5. **DNS.** AdGuard Home on `dns01`/`dns02` (unprivileged LXCs), wildcard `*.lab.krikri.dev` →
    `192.168.0.30`, upstream Cloudflare and Quad9 over DoT or DoH. Verify both resolve independently.
    Then the owner changes the router's DHCP DNS to
@@ -100,14 +99,19 @@ Work in small milestones. For each one:
 Remove each item once it is answered.
 
 - NAS: address, protocol, free space (the NAS is not available yet).
+- `/media/VMPal/ansible-vault/`: whether it has a backup off the MacBook. `chmod` works only on the Mac
+  side of the share.
 
 ## Accounts
 
 - Tailnet: `tail8b0eff.ts.net`.
 - A Cloudflare API token exists. It is not in this repo yet.
 - Tailscale login is manual. There is no auth key.
-- Vault password: use the file `vault-pass` in `/media/VMPal/ansible-vault/`, outside the repo. Not in
-  use yet. Do not set `vault_password_file` until the first secret exists, because CI has no such file.
+- Vault password: the file `vault-pass` in `/media/VMPal/ansible-vault/`, outside the repo. Do not set
+  `vault_password_file` in `ansible.cfg`, because CI has no such file. `tofu/run.sh` sets it instead.
+- OpenTofu state: `/media/VMPal/ansible-vault/tofu/`, encrypted, not in Git.
+- Secrets for OpenTofu: `secrets/tofu.env`, encrypted with Vault. The root password is typed at each
+  run. See `docs/runbooks/proxmox.md`.
 
 ## Technical notes
 
@@ -119,6 +123,8 @@ Remove each item once it is answered.
   assertion in its real form, not wrapped in `{{ }}`.
 - Plain `tailscale up` and `tailscale login` reset the routes and `accept-dns`. The role logs in with
   the full flags. Do not log in by hand.
+- The workstation is a VM on a MacBook. Its clock falls behind when the Mac sleeps, and `chrony` steps
+  only in its first 3 updates unless `makestep 1 -1` is set.
 - `failed_when: false` / `ignore_errors` hide real failures. Use them only with an explicit assertion
   afterwards.
 - Keepalived 2.x refuses track scripts unless `global_defs` has `enable_script_security` (and

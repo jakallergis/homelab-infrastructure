@@ -1,0 +1,15 @@
+#cloud-config
+hostname: ${hostname}
+manage_etc_hosts: true
+ssh_pwauth: true
+users:
+  - name: john
+    groups: [sudo]
+    shell: /bin/bash
+    lock_passwd: false
+    hashed_passwd: ${password_hash}
+package_update: true
+packages:
+  - qemu-guest-agent
+runcmd:
+  - [systemctl, enable, --now, qemu-guest-agent]

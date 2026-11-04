@@ -48,3 +48,18 @@
     name: chrony
     state: started
     enabled: true
+
+- name: Read the local storage settings
+  ansible.builtin.command: pvesh get /storage/local --output-format json
+  register: proxmox_base_local
+  changed_when: false
+  check_mode: false
+
+# OpenTofu uploads Cloud-Init files as snippets and imports the Debian image. The storage is cluster-wide.
+- name: Allow snippets and disk images on the local storage
+  ansible.builtin.command: "pvesm set local --content {{ proxmox_base_merged | join(',') }}"
+  changed_when: true
+  vars:
+    proxmox_base_current: "{{ (proxmox_base_local.stdout | from_json).content.split(',') }}"
+    proxmox_base_merged: "{{ (proxmox_base_current + proxmox_base_local_content) | unique | sort }}"
+  when: proxmox_base_local_content | difference(proxmox_base_current) | length > 0

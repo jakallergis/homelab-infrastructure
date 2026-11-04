@@ -5,3 +5,6 @@ proxmox_base_packages:
   - htop
   - tmux
   - vim
+proxmox_base_local_content:
+  - import
+  - snippets

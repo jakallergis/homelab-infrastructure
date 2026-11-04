@@ -8,7 +8,7 @@ Rules for AI sessions and the order of work are in [`AGENTS.md`](AGENTS.md).
 
 ## Requirements
 
-Python 3.12 and `make`. The tools install into `~/.cache/homelab-infrastructure/venv`, not the repo,
+Python 3.12, `make` and [mise](https://mise.jdx.dev/) for OpenTofu (`mise install`). The tools install into `~/.cache/homelab-infrastructure/venv`, not the repo,
 because the repo mount cannot create symlinks. Set `VENV=...` to use another location.
 
 ## Offline checks
@@ -26,6 +26,8 @@ make check
 | `make syntax` | Runs `ansible-playbook --syntax-check` on each playbook |
 | `make yamllint` | Lints all YAML files |
 | `make ansible-lint` | Lints the Ansible content |
+| `make shellcheck` | Lints the shell script |
+| `make tofu` | Checks the OpenTofu format and validates the configuration |
 | `make test` | Checks the inventory against the design rules |
 | `make secrets` | Scans the repo for secret patterns |
 
@@ -41,6 +43,8 @@ and cannot reach the LAN. The secret scan reads the current files only, not Git 
 | `playbooks/site.yml` | Applies the desired state, one host at a time. Needs `--limit` for a real run, to select one Tailscale router |
 | `playbooks/verify.yml` | Read-only health checks |
 | `roles/` | Ansible roles |
+| `tofu/` | OpenTofu configuration for the guests. Run it through `tofu/run.sh` |
+| `secrets/` | Secrets encrypted with Vault |
 | `tests/` | Offline tests |
 | `docs/` | The target design and the runbooks |
 

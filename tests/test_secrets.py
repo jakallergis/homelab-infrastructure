@@ -17,12 +17,12 @@ PATTERNS = {
     # A key with a secret-like name and a literal value. Vault and template references are allowed.
     "secret assignment": re.compile(
         r"""[\w.-]*(?:password|passwd|secret|token|api_?key)[\w.-]*\s*[:=]\s*["']?"""
-        r"""(?!\{\{|!vault|<|\$\{|\$\(|null\b|true\b|false\b)[^\s"'#]{8,}""",
+        r"""(?!\{\{|!vault|<|/|\$\{|\$\(|var\.|null\b|true\b|false\b)[^\s"'#]{8,}""",
         re.IGNORECASE,
     ),
 }
 FORBIDDEN_NAME = re.compile(r"(\.tfstate(\.|$)|\.tfvars$|\.pem$|\.key$|(^|/)\.vault-pass)")
-VAULT_NAME = re.compile(r"(^|/)vault[^/]*\.ya?ml$")
+VAULT_NAME = re.compile(r"(^|/)vault[^/]*\.ya?ml$|(^|/)secrets/")
 VAULT_HEADER = "$ANSIBLE_VAULT;"
 
 
@@ -96,6 +96,8 @@ def test_scanner_finds_fake_secrets(pattern, text):
         "cloudflare_api_token: !vault |",
         "password: <value>",
         "secrets: $(STAMP)",
+        "api_token = var.proxmox_api_token",
+        "VAULT_PASSWORD_FILE=/path/to/file",
         "hashed_passwd is a secret",
     ],
 )
