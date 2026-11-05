@@ -50,7 +50,14 @@ and cannot reach the LAN. The secret scan reads the current files only, not Git 
 
 ## Running against real machines
 
-Only with explicit approval for that action. See `AGENTS.md`. This needs `sshpass` on the machine
+Set `HOMELAB_PRIVATE_DIR` to a private folder outside the repo, for example in your shell profile:
+
+```sh
+export HOMELAB_PRIVATE_DIR=/media/VMPal/ansible-vault   # on the Ubuntu VM
+```
+
+That folder holds `vault-pass` (the Vault password) and `tofu/` (the encrypted OpenTofu state). Only
+with explicit approval for that action. See `AGENTS.md`. This needs `sshpass` on the machine
 that runs Ansible, and that machine must already trust each host's SSH key.
 
 ```sh

@@ -5,7 +5,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.cache/homelab-infrastructure/venv/bin:$PATH"
 export TF_DATA_DIR="$HOME/.cache/homelab-infrastructure/tofu"
-export ANSIBLE_VAULT_PASSWORD_FILE=/media/VMPal/ansible-vault/vault-pass
+: "${HOMELAB_PRIVATE_DIR:?Set HOMELAB_PRIVATE_DIR to the folder with vault-pass and the OpenTofu state}"
+export ANSIBLE_VAULT_PASSWORD_FILE="$HOMELAB_PRIVATE_DIR/vault-pass"
+export TF_CLI_ARGS_init="-backend-config=path=$HOMELAB_PRIVATE_DIR/tofu/terraform.tfstate"
+mkdir -p "$HOMELAB_PRIVATE_DIR/tofu"
 
 secrets="$(ansible-vault view secrets/tofu.env)"
 # shellcheck disable=SC1090

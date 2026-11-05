@@ -9,9 +9,8 @@ terraform {
   }
 
   # The state can hold secrets, so it stays outside the repo and is encrypted.
-  backend "local" {
-    path = "/media/VMPal/ansible-vault/tofu/terraform.tfstate"
-  }
+  # tofu/run.sh sets the path from HOMELAB_PRIVATE_DIR.
+  backend "local" {}
 
   encryption {
     key_provider "pbkdf2" "state" {

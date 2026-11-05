@@ -17,7 +17,7 @@ PATTERNS = {
     # A key with a secret-like name and a literal value. Vault and template references are allowed.
     "secret assignment": re.compile(
         r"""[\w.-]*(?:password|passwd|secret|token|api_?key)[\w.-]*\s*[:=]\s*["']?"""
-        r"""(?!\{\{|!vault|<|/|\$\{|\$\(|var\.|null\b|true\b|false\b)[^\s"'#]{8,}""",
+        r"""(?!\{\{|!vault|<|/|\$\{|\$\(|\$[A-Za-z_]|var\.|null\b|true\b|false\b)[^\s"'#]{8,}""",
         re.IGNORECASE,
     ),
 }
@@ -98,6 +98,7 @@ def test_scanner_finds_fake_secrets(pattern, text):
         "secrets: $(STAMP)",
         "api_token = var.proxmox_api_token",
         "VAULT_PASSWORD_FILE=/path/to/file",
+        'VAULT_PASSWORD_FILE="$PRIVATE_DIR/vault-pass"',
         "hashed_passwd is a secret",
     ],
 )

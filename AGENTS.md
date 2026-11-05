@@ -99,17 +99,17 @@ Work in small milestones. For each one:
 Remove each item once it is answered.
 
 - NAS: address, protocol, free space (the NAS is not available yet).
-- `/media/VMPal/ansible-vault/`: whether it has a backup off the MacBook. `chmod` works only on the Mac
-  side of the share.
+- The private folder: whether it has a backup off the MacBook. On this VM it is
+  `/media/VMPal/ansible-vault/`, and `chmod` works only on the Mac side of that share.
 
 ## Accounts
 
 - Tailnet: `tail8b0eff.ts.net`.
 - A Cloudflare API token exists. It is not in this repo yet.
 - Tailscale login is manual. There is no auth key.
-- Vault password: the file `vault-pass` in `/media/VMPal/ansible-vault/`, outside the repo. Do not set
-  `vault_password_file` in `ansible.cfg`, because CI has no such file. `tofu/run.sh` sets it instead.
-- OpenTofu state: `/media/VMPal/ansible-vault/tofu/`, encrypted, not in Git.
+- Private folder: `HOMELAB_PRIVATE_DIR` names it, outside the repo, so the repo works on any machine.
+  It holds `vault-pass` and the encrypted OpenTofu state in `tofu/`. Keep machine paths out of the repo.
+  Do not set `vault_password_file` in `ansible.cfg`, because CI has no such file. `tofu/run.sh` sets it.
 - Secrets for OpenTofu: `secrets/tofu.env`, encrypted with Vault. The root password is typed at each
   run. See `docs/runbooks/proxmox.md`.
 
