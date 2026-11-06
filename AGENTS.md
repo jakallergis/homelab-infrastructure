@@ -21,6 +21,11 @@ Work in small milestones. For each one:
 4. Explain in ASD-STE100 what each new file does.
 5. The owner reviews and commits. Each time you finish updating files, give a short commit message
    for that iteration.
+
+**Commands for the owner.** "I ran the commands" means only the commands in your most recent message.
+Never assume an earlier command ran unless the owner says so or shows its output. End every reply that
+leaves commands pending with the full list of pending commands, copied out again, so the owner never
+has to scroll back.
 6. Only then, if the milestone touches real machines, ask for approval for that specific live action.
 
 - **Don't build ahead.** No placeholder roles, speculative variables or files for later milestones.
