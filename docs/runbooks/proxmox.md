@@ -13,6 +13,8 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 - Package repositories: no-subscription. `pve-enterprise.sources` and `ceph.sources` stay on disk with
   `Enabled: false`.
 - The root password is the same on all three nodes. It is not stored in this repo.
+- Storage `local` allows `backup,import,iso,snippets,vztmpl`. This setting is cluster-wide. Before the
+  role added `snippets`, it was `import,iso,backup,vztmpl`.
 
 ## Check health
 

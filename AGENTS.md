@@ -21,12 +21,12 @@ Work in small milestones. For each one:
 4. Explain in ASD-STE100 what each new file does.
 5. The owner reviews and commits. Each time you finish updating files, give a short commit message
    for that iteration.
+6. Only then, if the milestone touches real machines, ask for approval for that specific live action.
 
 **Commands for the owner.** "I ran the commands" means only the commands in your most recent message.
 Never assume an earlier command ran unless the owner says so or shows its output. End every reply that
 leaves commands pending with the full list of pending commands, copied out again, so the owner never
 has to scroll back.
-6. Only then, if the milestone touches real machines, ask for approval for that specific live action.
 
 - **Don't build ahead.** No placeholder roles, speculative variables or files for later milestones.
   Prefer the simplest thing that meets the target. Fewer files beat clever abstractions.
@@ -104,8 +104,6 @@ has to scroll back.
 Remove each item once it is answered.
 
 - NAS: address, protocol, free space (the NAS is not available yet).
-- The private folder: whether it has a backup off the MacBook. On this VM it is
-  `/media/VMPal/ansible-vault/`, and `chmod` works only on the Mac side of that share.
 
 ## Accounts
 
@@ -115,6 +113,9 @@ Remove each item once it is answered.
 - Private folder: `HOMELAB_PRIVATE_DIR` names it, outside the repo, so the repo works on any machine.
   It holds `vault-pass` and the encrypted OpenTofu state in `tofu/`. Keep machine paths out of the repo.
   Do not set `vault_password_file` in `ansible.cfg`, because CI has no such file. `tofu/run.sh` sets it.
+  On this VM it is `/media/VMPal/ansible-vault/`, and `chmod` works only on the Mac side of that share.
+  The folder has no backup. A copy of `vault-pass` must be in the owner's password manager before the
+  first `tofu apply`.
 - Secrets for OpenTofu: `secrets/tofu.env`, encrypted with Vault. The root password is typed at each
   run. See `docs/runbooks/proxmox.md`.
 
