@@ -5,9 +5,9 @@ Live runs need approval (see `AGENTS.md`).
 
 ## Current state
 
-- `edge01` (VM 133, `pve01`) is live. Its SSH host key was checked against the console.
-- `edge02` and `docker01`–`03` have sizes in the inventory. They exist only after their first apply.
+- `edge01`, `edge02` and `docker01`–`03` are live. Their SSH host keys were checked against the console.
 - `dns01`/`dns02` (LXC) and `homeassistant` (HAOS) are not managed here yet.
+- OpenTofu creates every inventory host with `type: debian_vm`. It does not look at group names.
 
 ## What a run needs
 
@@ -39,9 +39,9 @@ TF_PLUGIN_CACHE_DIR=$HOME/.cache/homelab-infrastructure/tofu-check/providers tof
 
 ## Add a guest
 
-1. Give the host `cores`, `memory_mb` and `disk_gb` in `inventory/hosts.yml`. They must match the
-   table in `docs/architecture-target.md`. `make test` checks this, and that the disks fit in
-   `local-lvm`.
+1. Give the host `type: debian_vm`, `cores`, `memory_mb` and `disk_gb` in `inventory/hosts.yml`.
+   They must match the table in `docs/architecture-target.md`. `make test` checks this, and that the
+   disks fit in `local-lvm`.
 2. Check that the address is free: `ping -c 3 <address>` must fail.
 3. `tofu/run.sh apply`. Expect only `to add`, with `0 to change, 0 to destroy`.
 4. `tofu/run.sh plan` must show `No changes.`
@@ -71,5 +71,5 @@ Do not run `apply` again before you read the next plan.
 
 ## Remove a guest
 
-Removing the sizes from the inventory makes the next plan destroy the VM and its disk. A destroy
+Removing `type: debian_vm` from the inventory makes the next plan destroy the VM and its disk. A destroy
 needs approval, and the guest's data is lost unless it is backed up.

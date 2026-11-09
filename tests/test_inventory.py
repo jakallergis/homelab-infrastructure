@@ -49,20 +49,25 @@ DESIGN = (ROOT / "docs/architecture-target.md").read_text()
 # Table rows like: | `.21` | `docker01` | VM (Debian 13) | pve01 | 121 | 6 vCPU, 8 GB, 80 GB | ...
 DESIGN_GUESTS = {
     name: {
+        "kind": kind,
         "pve_node": node,
         "vmid": int(vmid),
         "cores": int(cores),
         "memory_mb": int(memory) * (1024 if memory_unit == "GB" else 1),
         "disk_gb": int(disk),
     }
-    for name, node, vmid, cores, memory, memory_unit, disk in re.findall(
-        r"^\| `[^`]+` \| `(\w+)` \| [^|]+ \| (pve\d+) \| (\d+) \| "
+    for name, kind, node, vmid, cores, memory, memory_unit, disk in re.findall(
+        r"^\| `[^`]+` \| `(\w+)` \| ([^|]+?) \| (pve\d+) \| (\d+) \| "
         r"(\d+) [^,]+, (\d+) (GB|MB), (\d+) GB \|",
         DESIGN,
         re.MULTILINE,
     )
 }
 LOCAL_LVM_GIB = {node: int(size) for size, node in re.findall(r"(\d+) GiB on `(pve\d+)`", DESIGN)}
+
+# The inventory "type" for each kind in the design table. OpenTofu creates the guests of type debian_vm.
+TYPES = {"debian_vm": "VM (Debian 13)"}
+SIZE_KEYS = ["cores", "memory_mb", "disk_gb"]
 
 
 def address(host):
@@ -134,6 +139,20 @@ def test_inventory_matches_the_design():
         if key in values and values[key] != expected
     ]
     assert wrong == []
+
+
+def test_guest_types_match_the_design():
+    wrong = [
+        name
+        for name, values in GUESTS.items()
+        if "type" in values and TYPES.get(values["type"]) != DESIGN_GUESTS[name]["kind"]
+    ]
+    assert wrong == []
+
+
+def test_debian_vms_have_a_size():
+    vms = [name for name, values in GUESTS.items() if values.get("type") == "debian_vm"]
+    assert [name for name in vms if not all(key in GUESTS[name] for key in SIZE_KEYS)] == []
 
 
 def test_planned_disks_fit_in_local_lvm():

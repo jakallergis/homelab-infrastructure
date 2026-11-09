@@ -4,7 +4,8 @@ Infrastructure as Code for a personal homelab: three Proxmox nodes, Docker Swarm
 and Home Assistant. The design is in [`docs/architecture-target.md`](docs/architecture-target.md).
 Rules for AI sessions and the order of work are in [`AGENTS.md`](AGENTS.md).
 
-**Status:** the Proxmox base and the Tailscale routers are live. OpenTofu has created `edge01`. The
+**Status:** the Proxmox base and the Tailscale routers are live. OpenTofu has created the Debian VMs
+(`edge01`, `edge02`, `docker01`–`03`). The
 runbooks are in [`docs/runbooks/`](docs/runbooks/).
 
 ## Requirements

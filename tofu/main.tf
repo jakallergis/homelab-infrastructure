@@ -35,13 +35,13 @@ locals {
   lan       = yamldecode(file("${path.module}/../inventory/group_vars/all.yml"))
   proxmox   = local.inventory.proxmox.hosts
 
-  # The Debian VMs. The dns group is LXC and Home Assistant is HAOS, so they are not here.
-  # A guest is provisioned once the inventory gives it a size.
-  vms = merge([
-    for group in ["edge", "swarm_managers"] : {
-      for name, host in local.inventory.debian_guests.children[group].hosts : name => host if can(host.cores)
-    }
-  ]...)
+  # All groups: the top-level groups and their child groups. The inventory is not deeper than that.
+  groups = concat(values(local.inventory), flatten([for group in values(local.inventory) : values(try(group.children, {}))]))
+  # A host listed only by name in a second group (pve02 in tailscale_routers) has no values there.
+  hosts = merge([for group in local.groups : { for name, host in try(group.hosts, {}) : name => host if host != null }]...)
+
+  # A guest is provisioned once the inventory gives it "type: debian_vm". It then needs a size.
+  vms = { for name, host in local.hosts : name => host if try(host.type, "") == "debian_vm" }
 
   image_nodes = toset([for host in values(local.vms) : host.pve_node])
   image_url   = "https://cloud.debian.org/images/cloud/trixie/20261021-2638/debian-13-generic-amd64-20261021-2638.qcow2"
