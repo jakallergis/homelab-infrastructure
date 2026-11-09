@@ -31,13 +31,17 @@ terraform {
 }
 
 locals {
-  inventory  = yamldecode(file("${path.module}/../inventory/hosts.yml")).all.children
-  lan        = yamldecode(file("${path.module}/../inventory/group_vars/all.yml"))
-  proxmox    = local.inventory.proxmox.hosts
-  edge_hosts = local.inventory.debian_guests.children.edge.hosts
+  inventory = yamldecode(file("${path.module}/../inventory/hosts.yml")).all.children
+  lan       = yamldecode(file("${path.module}/../inventory/group_vars/all.yml"))
+  proxmox   = local.inventory.proxmox.hosts
 
+  # The Debian VMs. The dns group is LXC and Home Assistant is HAOS, so they are not here.
   # A guest is provisioned once the inventory gives it a size.
-  vms = { for name, host in local.edge_hosts : name => host if can(host.cores) }
+  vms = merge([
+    for group in ["edge", "swarm_managers"] : {
+      for name, host in local.inventory.debian_guests.children[group].hosts : name => host if can(host.cores)
+    }
+  ]...)
 
   image_nodes = toset([for host in values(local.vms) : host.pve_node])
   image_url   = "https://cloud.debian.org/images/cloud/trixie/20261021-2638/debian-13-generic-amd64-20261021-2638.qcow2"

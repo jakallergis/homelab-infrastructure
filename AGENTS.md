@@ -68,7 +68,8 @@ has to scroll back.
 4. **Guest provisioning with OpenTofu** (`bpg/proxmox`). Code is in `tofu/`, run through `tofu/run.sh`.
    Cloud-Init sets the static IP, hostname, user `john`, password and installs `qemu-guest-agent`. The
    image is on each node's local storage (no cross-node cloning). A guest is provisioned once the
-   inventory gives it a size. Start with `edge01`, review the plan together, then add the rest. LXC
+   inventory gives it a size. `edge01` is live. `edge02` and `docker01`–`03` are coded, not applied.
+   See `docs/runbooks/guests.md`. LXC
    guests need a Debian 13 container template and another way to create `john`. Proxmox hosts stay off
    `.31`/`.32`.
 5. **DNS.** AdGuard Home on `dns01`/`dns02` (unprivileged LXCs), wildcard `*.lab.krikri.dev` →

@@ -1,6 +1,7 @@
 """Check the inventory against the rules in docs/architecture-target.md."""
 
 import json
+import re
 import subprocess
 from ipaddress import ip_address
 from pathlib import Path
@@ -43,6 +44,25 @@ for host, values in walk(INVENTORY["all"]):
 
 GUESTS = {name: values for name, values in HOSTS.items() if name not in host_names("proxmox")}
 VIP = GROUP_VARS["edge_vip"]
+
+DESIGN = (ROOT / "docs/architecture-target.md").read_text()
+# Table rows like: | `.21` | `docker01` | VM (Debian 13) | pve01 | 121 | 6 vCPU, 8 GB, 80 GB | ...
+DESIGN_GUESTS = {
+    name: {
+        "pve_node": node,
+        "vmid": int(vmid),
+        "cores": int(cores),
+        "memory_mb": int(memory) * (1024 if memory_unit == "GB" else 1),
+        "disk_gb": int(disk),
+    }
+    for name, node, vmid, cores, memory, memory_unit, disk in re.findall(
+        r"^\| `[^`]+` \| `(\w+)` \| [^|]+ \| (pve\d+) \| (\d+) \| "
+        r"(\d+) [^,]+, (\d+) (GB|MB), (\d+) GB \|",
+        DESIGN,
+        re.MULTILINE,
+    )
+}
+LOCAL_LVM_GIB = {node: int(size) for size, node in re.findall(r"(\d+) GiB on `(pve\d+)`", DESIGN)}
 
 
 def address(host):
@@ -99,6 +119,28 @@ def test_exactly_two_tailscale_routers_on_proxmox_hosts():
 def test_redundant_members_are_on_separate_nodes(group):
     nodes = [HOSTS[name]["pve_node"] for name in host_names(group)]
     assert len(nodes) == len(set(nodes))
+
+
+def test_every_guest_is_in_the_design_table():
+    assert set(DESIGN_GUESTS) == set(GUESTS)
+
+
+def test_inventory_matches_the_design():
+    """Node and ID always. Size only once the inventory gives one, which makes OpenTofu create the guest."""
+    wrong = [
+        f"{name}: {key}"
+        for name, values in GUESTS.items()
+        for key, expected in DESIGN_GUESTS[name].items()
+        if key in values and values[key] != expected
+    ]
+    assert wrong == []
+
+
+def test_planned_disks_fit_in_local_lvm():
+    assert set(LOCAL_LVM_GIB) == set(host_names("proxmox"))
+    for node, pool in LOCAL_LVM_GIB.items():
+        planned = sum(guest["disk_gb"] for guest in DESIGN_GUESTS.values() if guest["pve_node"] == node)
+        assert planned <= pool, f"{node}: {planned} GB of disks on a {pool} GiB pool"
 
 
 def rendered_routes(host):
