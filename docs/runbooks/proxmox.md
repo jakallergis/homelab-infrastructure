@@ -47,7 +47,7 @@ OpenTofu logs in as `tofu@pve` with an API token. If you rebuild the cluster, do
 1. In the web UI, open a node, then **Shell**, and create the role:
 
    ```sh
-   pveum role add TofuProvision -privs "Datastore.AllocateSpace Datastore.AllocateTemplate Datastore.Audit SDN.Audit SDN.Use Sys.Audit Sys.Modify VM.Allocate VM.Audit VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.GuestAgent.Audit VM.PowerMgmt"
+   pveum role add TofuProvision -privs "Datastore.Allocate Datastore.AllocateSpace Datastore.AllocateTemplate Datastore.Audit SDN.Audit SDN.Use Sys.Audit Sys.Modify VM.Allocate VM.Audit VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.GuestAgent.Audit VM.PowerMgmt"
    ```
 
 2. **Datacenter > Permissions > Users > Add:** user `tofu`, realm `Proxmox VE authentication server`.
