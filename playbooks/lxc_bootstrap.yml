@@ -13,9 +13,11 @@
       no_log: true
       when: type | default('') == 'debian_lxc'
 
+    # Ansible resolves delegate_to before "when", so hosts without pve_node (the Proxmox nodes) need
+    # a default. The "when" then skips them.
     - name: Create john in a container
       when: type | default('') == 'debian_lxc'
-      delegate_to: "{{ pve_node }}"
+      delegate_to: "{{ pve_node | default(inventory_hostname) }}"
       block:
         - name: Check whether john exists
           ansible.builtin.command: pct exec {{ vmid }} -- id john
