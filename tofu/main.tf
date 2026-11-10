@@ -155,6 +155,12 @@ resource "proxmox_virtual_environment_vm" "guest" {
   operating_system {
     type = "l26"
   }
+
+  # Cloud-Init reads the user data only on the first boot. A new file (for example, a new password
+  # hash) would otherwise replace the VM and its disk.
+  lifecycle {
+    ignore_changes = [initialization[0].user_data_file_id]
+  }
 }
 
 resource "proxmox_download_file" "debian_template" {

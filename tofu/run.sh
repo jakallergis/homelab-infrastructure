@@ -19,6 +19,11 @@ unset secrets
 TF_VAR_john_password_hash="$(ansible-vault view secrets/guests.yml |
   python3 -c 'import sys, yaml; print(yaml.safe_load(sys.stdin)["john_password_hash"])')"
 export TF_VAR_john_password_hash
+# A hash never contains whitespace. A copied hash can, when the terminal wrapped the line.
+if [[ "$TF_VAR_john_password_hash" =~ [[:space:]] ]]; then
+  echo "secrets/guests.yml: john_password_hash contains whitespace. Remove it with ansible-vault edit." >&2
+  exit 1
+fi
 
 read -rsp "Proxmox root password: " PROXMOX_VE_SSH_PASSWORD
 echo

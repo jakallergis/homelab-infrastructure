@@ -68,7 +68,7 @@ has to scroll back.
 4. **Guest provisioning with OpenTofu** (`bpg/proxmox`). Code is in `tofu/`, run through `tofu/run.sh`.
    Cloud-Init sets the static IP, hostname, user `john`, password and installs `qemu-guest-agent`. The
    image is on each node's local storage (no cross-node cloning). A guest is provisioned once the
-   inventory gives it a `type` (`debian_vm` or `debian_lxc`) and a size. The five Debian VMs are live.
+   inventory gives it a `type` (`debian_vm` or `debian_lxc`) and a size. The five Debian VMs and `dns01`/`dns02` are live.
    See `docs/runbooks/guests.md`. Containers get `john` from `playbooks/lxc_bootstrap.yml`. Proxmox hosts stay off
    `.31`/`.32`.
 5. **DNS.** AdGuard Home on `dns01`/`dns02` (unprivileged LXCs), wildcard `*.lab.krikri.dev` →

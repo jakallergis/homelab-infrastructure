@@ -6,7 +6,7 @@ the repo root. Live runs need approval (see `AGENTS.md`).
 ## Current state
 
 - `edge01`, `edge02` and `docker01`–`03` are live. Their SSH host keys were checked against the console.
-- `dns01`/`dns02` (LXC) are coded, not applied.
+- `dns01`/`dns02` (LXC) are live, with `john` created and host keys checked.
 - `homeassistant` (HAOS) is not managed here yet.
 - OpenTofu selects guests by the inventory `type`, not by group: `debian_vm` makes a VM with
   Cloud-Init, and `debian_lxc` makes an unprivileged container.
@@ -25,7 +25,9 @@ and the state cannot be read.
 
 To change `john`'s password for new guests, run `openssl passwd -6` and replace the value with
 `ansible-vault edit --vault-password-file "$HOMELAB_PRIVATE_DIR/vault-pass" secrets/guests.yml`.
-Existing guests keep their old password.
+Keep the hash on one line: `tofu/run.sh` stops if it contains whitespace. Existing guests keep their
+old password. The next plan replaces the Cloud-Init files (`user_data`) on the nodes, but not the
+VMs, because the VM resource ignores changes to `user_data_file_id`.
 
 ## Plan and apply
 
