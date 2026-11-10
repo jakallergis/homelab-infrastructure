@@ -1,0 +1,48 @@
+---
+# Containers have no Cloud-Init. This creates the user john in each guest of type debian_lxc, with
+# "pct exec" on the guest's Proxmox node. A container that already has john is not changed.
+# Other hosts are skipped. Ansible never connects to the containers themselves.
+- name: Create john in the containers
+  hosts: all
+  gather_facts: false
+  tasks:
+    # A task, not vars_files: the syntax check in CI has no Vault password.
+    - name: Read the password hash from Vault
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../secrets/guests.yml"
+      no_log: true
+      when: type | default('') == 'debian_lxc'
+
+    - name: Create john in a container
+      when: type | default('') == 'debian_lxc'
+      delegate_to: "{{ pve_node }}"
+      block:
+        - name: Check whether john exists
+          ansible.builtin.command: pct exec {{ vmid }} -- id john
+          register: lxc_bootstrap_john
+          changed_when: false
+          failed_when: lxc_bootstrap_john.rc not in [0, 1]
+          check_mode: false
+
+        - name: Install sudo
+          ansible.builtin.command: pct exec {{ vmid }} -- sh -c 'apt-get update && apt-get install -y sudo'
+          changed_when: true
+          when: lxc_bootstrap_john.rc == 1
+
+        # argv: the hash contains "$", so it must not pass through a shell.
+        - name: Create john with the password hash
+          ansible.builtin.command:
+            argv:
+              - pct
+              - exec
+              - "{{ vmid }}"
+              - --
+              - useradd
+              - --create-home
+              - --shell=/bin/bash
+              - --groups=sudo
+              - --password={{ john_password_hash }}
+              - john
+          changed_when: true
+          no_log: true
+          when: lxc_bootstrap_john.rc == 1

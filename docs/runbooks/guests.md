@@ -1,24 +1,31 @@
-# Runbook: guest VMs (OpenTofu)
+# Runbook: guests (OpenTofu)
 
-OpenTofu creates the Debian VMs from `tofu/`. Run it only through `tofu/run.sh`, from the repo root.
-Live runs need approval (see `AGENTS.md`).
+OpenTofu creates the Debian VMs and containers from `tofu/`. Run it only through `tofu/run.sh`, from
+the repo root. Live runs need approval (see `AGENTS.md`).
 
 ## Current state
 
 - `edge01`, `edge02` and `docker01`–`03` are live. Their SSH host keys were checked against the console.
-- `dns01`/`dns02` (LXC) and `homeassistant` (HAOS) are not managed here yet.
-- OpenTofu creates every inventory host with `type: debian_vm`. It does not look at group names.
+- `dns01`/`dns02` (LXC) are coded, not applied.
+- `homeassistant` (HAOS) is not managed here yet.
+- OpenTofu selects guests by the inventory `type`, not by group: `debian_vm` makes a VM with
+  Cloud-Init, and `debian_lxc` makes an unprivileged container.
 
 ## What a run needs
 
 | Item | Where |
 |---|---|
 | `HOMELAB_PRIVATE_DIR` | Set in your shell. The folder holds `vault-pass` and the state in `tofu/` |
-| API token, `john` password hash, state passphrase | `secrets/tofu.env`, encrypted with Vault. See `proxmox.md` |
+| API token, state passphrase | `secrets/tofu.env`, encrypted with Vault. See `proxmox.md` |
+| `john` password hash | `secrets/guests.yml` (`john_password_hash`), encrypted with Vault. OpenTofu and Ansible both read it |
 | Proxmox root password | Typed at each run. SSH is used only to upload the Cloud-Init file |
 
-A copy of `vault-pass` must be in the owner's password manager. Without it, `secrets/tofu.env` and the
-state cannot be read.
+A copy of `vault-pass` must be in the owner's password manager. Without it, the files in `secrets/`
+and the state cannot be read.
+
+To change `john`'s password for new guests, run `openssl passwd -6` and replace the value with
+`ansible-vault edit --vault-password-file "$HOMELAB_PRIVATE_DIR/vault-pass" secrets/guests.yml`.
+Existing guests keep their old password.
 
 ## Plan and apply
 
@@ -39,13 +46,20 @@ TF_PLUGIN_CACHE_DIR=$HOME/.cache/homelab-infrastructure/tofu-check/providers tof
 
 ## Add a guest
 
-1. Give the host `type: debian_vm`, `cores`, `memory_mb` and `disk_gb` in `inventory/hosts.yml`.
+1. Give the host a `type`, `cores`, `memory_mb` and `disk_gb` in `inventory/hosts.yml`.
    They must match the table in `docs/architecture-target.md`. `make test` checks this, and that the
    disks fit in `local-lvm`.
 2. Check that the address is free: `ping -c 3 <address>` must fail.
 3. `tofu/run.sh apply`. Expect only `to add`, with `0 to change, 0 to destroy`.
 4. `tofu/run.sh plan` must show `No changes.`
-5. Check the host key. In the Proxmox UI, open the VM, then **Console**. Log in as `john` and run
+5. A container has no Cloud-Init, so create `john` in it. The playbook runs `pct exec` on the
+   container's node and skips a container where `john` already exists:
+
+   ```sh
+   ansible-playbook playbooks/lxc_bootstrap.yml --ask-pass --vault-password-file "$HOMELAB_PRIVATE_DIR/vault-pass"
+   ```
+
+6. Check the host key. In the Proxmox UI, open the guest, then **Console**. Log in as `john` and run
    `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`. Then run `ssh john@<address>` from the
    workstation and accept the key only if the `SHA256:` values are equal.
 
@@ -71,5 +85,5 @@ Do not run `apply` again before you read the next plan.
 
 ## Remove a guest
 
-Removing `type: debian_vm` from the inventory makes the next plan destroy the VM and its disk. A destroy
+Removing the `type` from the inventory makes the next plan destroy the guest and its disk. A destroy
 needs approval, and the guest's data is lost unless it is backed up.

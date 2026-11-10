@@ -68,9 +68,8 @@ has to scroll back.
 4. **Guest provisioning with OpenTofu** (`bpg/proxmox`). Code is in `tofu/`, run through `tofu/run.sh`.
    Cloud-Init sets the static IP, hostname, user `john`, password and installs `qemu-guest-agent`. The
    image is on each node's local storage (no cross-node cloning). A guest is provisioned once the
-   inventory gives it `type: debian_vm` and a size. The five Debian VMs are live. See
-   `docs/runbooks/guests.md`. LXC
-   guests need a Debian 13 container template and another way to create `john`. Proxmox hosts stay off
+   inventory gives it a `type` (`debian_vm` or `debian_lxc`) and a size. The five Debian VMs are live.
+   See `docs/runbooks/guests.md`. Containers get `john` from `playbooks/lxc_bootstrap.yml`. Proxmox hosts stay off
    `.31`/`.32`.
 5. **DNS.** AdGuard Home on `dns01`/`dns02` (unprivileged LXCs), wildcard `*.lab.krikri.dev` →
    `192.168.0.30`, upstream Cloudflare and Quad9 over DoT or DoH. Verify both resolve independently.
@@ -117,8 +116,8 @@ Remove each item once it is answered.
   On this VM it is `/media/VMPal/ansible-vault/`, and `chmod` works only on the Mac side of that share.
   The folder has no backup. A copy of `vault-pass` must be in the owner's password manager before the
   first `tofu apply`.
-- Secrets for OpenTofu: `secrets/tofu.env`, encrypted with Vault. The root password is typed at each
-  run. See `docs/runbooks/proxmox.md`.
+- Secrets for OpenTofu: `secrets/tofu.env`, encrypted with Vault. The hash of `john`'s password is in
+  `secrets/guests.yml`, shared by OpenTofu and Ansible. The root password is typed at each run. See `docs/runbooks/proxmox.md`.
 
 ## Technical notes
 

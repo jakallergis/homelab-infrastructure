@@ -40,12 +40,18 @@ locals {
   # A host listed only by name in a second group (pve02 in tailscale_routers) has no values there.
   hosts = merge([for group in local.groups : { for name, host in try(group.hosts, {}) : name => host if host != null }]...)
 
-  # A guest is provisioned once the inventory gives it "type: debian_vm". It then needs a size.
-  vms = { for name, host in local.hosts : name => host if try(host.type, "") == "debian_vm" }
+  # A guest is provisioned once the inventory gives it a type. It then needs a size.
+  vms  = { for name, host in local.hosts : name => host if try(host.type, "") == "debian_vm" }
+  lxcs = { for name, host in local.hosts : name => host if try(host.type, "") == "debian_lxc" }
 
   image_nodes = toset([for host in values(local.vms) : host.pve_node])
   image_url   = "https://cloud.debian.org/images/cloud/trixie/20261021-2638/debian-13-generic-amd64-20261021-2638.qcow2"
   image_sha   = "70ef6adc1c16155f8d575731b37d0f976d1c60b6144ac3f57914a3f4b30b202b69584d5d143aa39da0f0fe81df9e5b698909c0d94c7d91c6f6c4bb6581ead5f0"
+
+  # The Proxmox template server has no HTTPS. The checksum is from its GPG-signed index (pveam).
+  template_nodes = toset([for host in values(local.lxcs) : host.pve_node])
+  template_url   = "http://download.proxmox.com/images/system/debian-13-standard_13.6-1_amd64.tar.zst"
+  template_sha   = "4c0c27ca6ceab5ef0b84db57825a00f26157ef1854bafe97297813e1cbe8ecb8cc9c453cab6b3b0efe1ba193a50c47ece1e41d950e411b8730b835b71e9e754b"
 }
 
 provider "proxmox" {
@@ -148,5 +154,70 @@ resource "proxmox_virtual_environment_vm" "guest" {
 
   operating_system {
     type = "l26"
+  }
+}
+
+resource "proxmox_download_file" "debian_template" {
+  for_each = local.template_nodes
+
+  node_name          = each.value
+  datastore_id       = "local"
+  content_type       = "vztmpl"
+  url                = local.template_url
+  checksum           = local.template_sha
+  checksum_algorithm = "sha512"
+}
+
+# No Cloud-Init in a container: playbooks/lxc_bootstrap.yml creates john.
+resource "proxmox_virtual_environment_container" "guest" {
+  for_each = local.lxcs
+
+  node_name     = each.value.pve_node
+  vm_id         = each.value.vmid
+  unprivileged  = true
+  start_on_boot = true
+
+  # systemd in Debian 13 needs nesting in an unprivileged container.
+  features {
+    nesting = true
+  }
+
+  cpu {
+    cores = each.value.cores
+  }
+
+  memory {
+    dedicated = each.value.memory_mb
+  }
+
+  disk {
+    datastore_id = "local-lvm"
+    size         = each.value.disk_gb
+  }
+
+  operating_system {
+    template_file_id = proxmox_download_file.debian_template[each.value.pve_node].id
+    type             = "debian"
+  }
+
+  initialization {
+    hostname = each.key
+
+    dns {
+      servers = local.lan.guest_dns_servers
+    }
+
+    ip_config {
+      ipv4 {
+        address = "${each.value.ansible_host}/24"
+        gateway = local.lan.lan_gateway
+      }
+    }
+  }
+
+  network_interface {
+    name     = "eth0"
+    bridge   = "vmbr0"
+    firewall = false
   }
 }

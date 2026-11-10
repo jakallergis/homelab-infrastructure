@@ -56,13 +56,14 @@ OpenTofu logs in as `tofu@pve` with an API token. If you rebuild the cluster, do
 4. **Datacenter > Permissions > Add > User Permission:** path `/`, user `tofu@pve`, role `TofuProvision`.
 5. Put the token in `secrets/tofu.env` with `ansible-vault`. Never store it anywhere else.
 
-`secrets/tofu.env` holds these three exports, with the values in single quotes:
+`secrets/tofu.env` holds these two exports, with the values in single quotes:
 
 | Variable | Value |
 |---|---|
 | `PROXMOX_VE_API_TOKEN` | `tofu@pve!tofu=<secret>` |
-| `TF_VAR_john_password_hash` | The output of `openssl passwd -6` |
 | `TF_VAR_state_passphrase` | A long random passphrase. Without it, the state cannot be read |
+
+The hash of `john`'s password is in `secrets/guests.yml` (see `guests.md`).
 
 ## Undo the repository change
 

@@ -1,5 +1,5 @@
 variable "john_password_hash" {
-  description = "Password hash for the user john. It comes from secrets/tofu.env."
+  description = "Password hash for the user john. tofu/run.sh reads it from secrets/guests.yml."
   type        = string
   sensitive   = true
 }

@@ -65,8 +65,8 @@ DESIGN_GUESTS = {
 }
 LOCAL_LVM_GIB = {node: int(size) for size, node in re.findall(r"(\d+) GiB on `(pve\d+)`", DESIGN)}
 
-# The inventory "type" for each kind in the design table. OpenTofu creates the guests of type debian_vm.
-TYPES = {"debian_vm": "VM (Debian 13)"}
+# The inventory "type" for each kind in the design table. OpenTofu creates the guests that have a type.
+TYPES = {"debian_vm": "VM (Debian 13)", "debian_lxc": "LXC (Debian 13, unprivileged)"}
 SIZE_KEYS = ["cores", "memory_mb", "disk_gb"]
 
 
@@ -150,9 +150,9 @@ def test_guest_types_match_the_design():
     assert wrong == []
 
 
-def test_debian_vms_have_a_size():
-    vms = [name for name, values in GUESTS.items() if values.get("type") == "debian_vm"]
-    assert [name for name in vms if not all(key in GUESTS[name] for key in SIZE_KEYS)] == []
+def test_typed_guests_have_a_size():
+    typed = [name for name, values in GUESTS.items() if "type" in values]
+    assert [name for name in typed if not all(key in GUESTS[name] for key in SIZE_KEYS)] == []
 
 
 def test_planned_disks_fit_in_local_lvm():

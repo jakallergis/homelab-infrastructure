@@ -15,6 +15,11 @@ secrets="$(ansible-vault view secrets/tofu.env)"
 source <(printf '%s\n' "$secrets")
 unset secrets
 
+# Ansible uses the same hash for the containers, so it lives in one Vault file for both.
+TF_VAR_john_password_hash="$(ansible-vault view secrets/guests.yml |
+  python3 -c 'import sys, yaml; print(yaml.safe_load(sys.stdin)["john_password_hash"])')"
+export TF_VAR_john_password_hash
+
 read -rsp "Proxmox root password: " PROXMOX_VE_SSH_PASSWORD
 echo
 export PROXMOX_VE_SSH_PASSWORD

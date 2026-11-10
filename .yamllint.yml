@@ -1,6 +1,10 @@
 ---
 extends: default
 
+# Vault files are encrypted text, not YAML.
+ignore: |
+  secrets/
+
 rules:
   braces:
     max-spaces-inside: 1
