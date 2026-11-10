@@ -81,3 +81,31 @@
         quiet: true
       vars:
         verify_prefs: "{{ verify_tailscale_prefs.stdout | from_json }}"
+
+# Each server is asked alone, from the workstation, so a working dns01 cannot hide a broken dns02.
+# No SSH to the containers: every task runs on the workstation.
+- name: Check the DNS servers
+  hosts: dns
+  gather_facts: false
+  tasks:
+    - name: Ask for a lab name and a public name
+      ansible.builtin.command: dig +short +time=2 +tries=2 @{{ ansible_host }} {{ item }}
+      loop:
+        - test.{{ lab_domain }}
+        - debian.org
+      register: verify_dns
+      changed_when: false
+      check_mode: false
+      delegate_to: localhost
+
+    - name: Check the answers
+      ansible.builtin.assert:
+        that:
+          - verify_dns.results[0].stdout_lines == [edge_vip]
+          - verify_dns.results[1].stdout_lines | length > 0
+        quiet: true
+
+    - name: Check that the web UI answers
+      ansible.builtin.uri:
+        url: http://{{ ansible_host }}/
+      delegate_to: localhost

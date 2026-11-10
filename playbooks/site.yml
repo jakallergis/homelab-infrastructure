@@ -10,3 +10,11 @@
   serial: 1
   roles:
     - tailscale_router
+
+- name: Configure the DNS servers
+  hosts: dns
+  serial: 1
+  become: true
+  roles:
+    - adguard_install
+    - adguard_config

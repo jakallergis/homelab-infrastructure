@@ -1,0 +1,56 @@
+---
+# Installs one pinned release of AdGuard Home and its systemd unit. The service starts in
+# adguard_config, after the configuration exists: without it, AdGuard Home starts its setup wizard.
+- name: Create the AdGuard Home user
+  ansible.builtin.user:
+    name: adguardhome
+    system: true
+    shell: /usr/sbin/nologin
+    home: /var/lib/adguardhome
+    create_home: false
+
+# AdGuard Home sets these modes itself at start. The same modes here keep the runs idempotent.
+- name: Create the working directory
+  ansible.builtin.file:
+    path: /var/lib/adguardhome
+    state: directory
+    owner: adguardhome
+    group: adguardhome
+    mode: "0700"
+
+- name: Create the directory for this release
+  ansible.builtin.file:
+    path: /opt/AdGuardHome/{{ adguard_version }}
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Download the release
+  ansible.builtin.get_url:
+    url: "{{ adguard_release_url }}/{{ adguard_version }}/AdGuardHome_linux_amd64.tar.gz"
+    dest: /opt/AdGuardHome/{{ adguard_version }}/AdGuardHome_linux_amd64.tar.gz
+    checksum: sha256:{{ adguard_sha256.amd64 }}
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    adguard_release_url: https://github.com/AdguardTeam/AdGuardHome/releases/download
+
+- name: Unpack the release
+  ansible.builtin.unarchive:
+    src: /opt/AdGuardHome/{{ adguard_version }}/AdGuardHome_linux_amd64.tar.gz
+    dest: /opt/AdGuardHome/{{ adguard_version }}
+    remote_src: true
+    creates: /opt/AdGuardHome/{{ adguard_version }}/AdGuardHome/AdGuardHome
+    owner: root
+    group: root
+
+- name: Install the systemd unit
+  ansible.builtin.template:
+    src: adguardhome.service.j2
+    dest: /etc/systemd/system/adguardhome.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart AdGuard Home

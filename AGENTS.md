@@ -73,6 +73,7 @@ has to scroll back.
    `.31`/`.32`.
 5. **DNS.** AdGuard Home on `dns01`/`dns02` (unprivileged LXCs), wildcard `*.lab.krikri.dev` →
    `192.168.0.30`, upstream Cloudflare and Quad9 over DoT or DoH. Verify both resolve independently.
+   Roles `adguard_install` and `adguard_config` are coded, not applied. See `docs/runbooks/dns.md`.
    Then the owner changes the router's DHCP DNS to
    `.31`/`.32`, and you add Tailscale split DNS.
 6. **Docker hosts and Swarm.** A `docker_host` role (Engine + Compose plugin from Docker's repo,
@@ -117,7 +118,7 @@ Remove each item once it is answered.
   The folder has no backup. A copy of `vault-pass` must be in the owner's password manager before the
   first `tofu apply`.
 - Secrets for OpenTofu: `secrets/tofu.env`, encrypted with Vault. The hash of `john`'s password is in
-  `secrets/guests.yml`, shared by OpenTofu and Ansible. The root password is typed at each run. See `docs/runbooks/proxmox.md`.
+  `secrets/guests.yml`, shared by OpenTofu and Ansible. The AdGuard Home admin hash is in `secrets/dns.yml`. The root password is typed at each run. See `docs/runbooks/proxmox.md`.
 
 ## Technical notes
 

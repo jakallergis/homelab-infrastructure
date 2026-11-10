@@ -1,0 +1,29 @@
+---
+# Writes the whole AdGuard Home configuration from Git and starts the service.
+# A task, not vars_files: the syntax check in CI has no Vault password.
+- name: Read the admin password hash from Vault
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/../secrets/dns.yml"
+  no_log: true
+
+# --check-config finds YAML errors and wrong value types, but not misspelled keys.
+# no_log also hides the diff, because the file contains the password hash.
+- name: Write the configuration
+  ansible.builtin.template:
+    src: AdGuardHome.yaml.j2
+    dest: /var/lib/adguardhome/AdGuardHome.yaml
+    owner: adguardhome
+    group: adguardhome
+    mode: "0600"
+    validate: >-
+      /opt/AdGuardHome/{{ adguard_version }}/AdGuardHome/AdGuardHome --check-config
+      --work-dir /var/lib/adguardhome --config %s
+  no_log: true
+  notify: Restart AdGuard Home
+
+- name: Start AdGuard Home and start it at boot
+  ansible.builtin.systemd_service:
+    name: adguardhome
+    state: started
+    enabled: true
+    daemon_reload: true

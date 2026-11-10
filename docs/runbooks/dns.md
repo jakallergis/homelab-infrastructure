@@ -1,0 +1,76 @@
+# Runbook: DNS (AdGuard Home)
+
+`dns01` (`.31`) and `dns02` (`.32`) run AdGuard Home in unprivileged LXCs. Each one alone answers
+`*.lab.krikri.dev` → `192.168.0.30` and forwards all other names to Cloudflare and Quad9 over DoH.
+Live runs need approval (see `AGENTS.md`). Run all commands from the repo root.
+
+```sh
+export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
+```
+
+## Current state
+
+- Coded, not applied.
+- The router's DHCP still gives `192.168.0.1` as DNS. Tailscale split DNS is not set.
+
+## How it is built
+
+| Item | Where |
+|---|---|
+| Version and checksums | `inventory/group_vars/dns.yml` |
+| Upstream and bootstrap servers | `inventory/group_vars/dns.yml` |
+| Program | `/opt/AdGuardHome/<version>/AdGuardHome/AdGuardHome`, owned by root |
+| Configuration and data | `/var/lib/adguardhome/`, owned by the user `adguardhome`, mode `0700` |
+| Service | `adguardhome.service`, runs as `adguardhome` with only `CAP_NET_BIND_SERVICE` |
+| Web UI | `http://192.168.0.31/` and `http://192.168.0.32/`, user `admin`, LAN only, plain HTTP |
+| Admin password hash | `secrets/dns.yml` (`adguard_admin_password_hash`), encrypted with Vault |
+
+The admin password itself is in the owner's password manager. To replace it, create `secrets/dns.yml`
+again (below) and run the play.
+
+**Git owns the configuration.** `roles/adguard_config` writes the whole file. AdGuard Home writes the
+file back each time it starts, so the template is AdGuard Home's own output for the pinned version.
+Changes in the web UI are lost at the next Ansible run. `make test` starts the pinned version on local
+ports, checks the wildcard answer, and checks that AdGuard Home leaves the rendered file unchanged.
+
+## Create the admin password hash
+
+The command asks for the admin password (prompt `Password:`), hashes it with bcrypt and encrypts
+the result. The hash is never shown.
+
+```sh
+python3 -c 'import bcrypt, getpass, yaml; h = bcrypt.hashpw(getpass.getpass().encode(), bcrypt.gensalt(10)).decode(); print(yaml.safe_dump({"adguard_admin_password_hash": h}), end="")' | ansible-vault encrypt --vault-password-file "$HOMELAB_PRIVATE_DIR/vault-pass" --output secrets/dns.yml
+```
+
+## Apply
+
+One server at a time. Do `dns02` only after `dns01` passes the checks.
+
+```sh
+ansible-playbook playbooks/site.yml --limit dns01 --check --diff --ask-pass --ask-become-pass --vault-password-file "$HOMELAB_PRIVATE_DIR/vault-pass"
+ansible-playbook playbooks/site.yml --limit dns01 --ask-pass --ask-become-pass --vault-password-file "$HOMELAB_PRIVATE_DIR/vault-pass"
+ansible-playbook playbooks/verify.yml --limit dns01
+```
+
+On the first install, skip the `--check` line: check mode cannot unpack a file it did not download,
+so it fails. The configuration task uses `no_log`, so `--diff` does not show that file (it contains
+the hash). It still shows whether the file changes.
+
+## Check health
+
+Read-only. It asks each server alone, from the workstation, and needs no password:
+
+```sh
+ansible-playbook playbooks/verify.yml --limit dns
+dig +short @192.168.0.31 test.lab.krikri.dev
+dig +short @192.168.0.32 test.lab.krikri.dev
+```
+
+## Upgrade AdGuard Home
+
+1. Set `adguard_version` and both checksums from the release's `checksums.txt` in
+   `inventory/group_vars/dns.yml`.
+2. Run `make test`. If AdGuard Home rewrites the file, the new version writes a different format:
+   start it once on a copy of the rendered file and update the template from its output.
+3. Apply to `dns01`, verify, then `dns02`. The old release stays in `/opt/AdGuardHome/` for a rollback:
+   set the old version again and apply.

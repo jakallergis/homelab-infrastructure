@@ -45,7 +45,7 @@ tofu:
 	TF_DATA_DIR=$(CACHE)/tofu-check TF_VAR_state_passphrase=offline-check-only $(TOFU) -chdir=tofu validate
 
 test: $(STAMP)
-	$(PYTEST) tests/test_inventory.py
+	$(PYTEST) tests/test_inventory.py tests/test_adguard.py
 
 secrets: $(STAMP)
 	$(PYTEST) tests/test_secrets.py
