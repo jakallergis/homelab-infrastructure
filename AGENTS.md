@@ -76,7 +76,8 @@ has to scroll back.
    config; after that, the web UI owns it. See `docs/runbooks/dns.md`.
    The router's DHCP DNS is `.31`/`.32`, and Tailscale split DNS uses them. Done.
 6. **Docker hosts and Swarm.** A `docker_host` role (Engine + Compose plugin from Docker's repo,
-   pinned), Swarm init/join as a separate bootstrap step, 3 managers.
+   pinned), Swarm init/join as a separate bootstrap step, 3 managers. Coded: role `docker_host`,
+   `playbooks/swarm_bootstrap.yml`, checks in `verify.yml`. Not applied yet. See `docs/runbooks/docker.md`.
 7. **Swarm stacks.** Traefik (2 replicas, HTTP entrypoint on ingress `:18080`, no ACME, trusts forwarded
    headers only from `.33`/`.34`), Portainer CE + agent, adguardhome-sync (`dns01` → `dns02`). One
    deploy path from the repo; pinned image tags.

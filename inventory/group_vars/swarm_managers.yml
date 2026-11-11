@@ -1,0 +1,10 @@
+---
+# Docker Engine from Docker's apt repository for Debian 13, amd64. The packages are on hold, so the
+# versions change only here. tests/test_docker.py checks that each version exists in the repository.
+# The key is Docker's signing key, fingerprint 9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88.
+docker_key_sha256: 1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570
+docker_packages:
+  docker-ce: 5:29.9.3-1~debian.13~trixie
+  docker-ce-cli: 5:29.9.3-1~debian.13~trixie
+  containerd.io: 2.4.2-3~debian.13~trixie
+  docker-compose-plugin: 5.7.1-1~debian.13~trixie

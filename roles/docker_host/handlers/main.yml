@@ -1,0 +1,10 @@
+---
+- name: Refresh the package index
+  ansible.builtin.apt:
+    update_cache: true
+
+# On a Swarm manager, this also stops and starts the containers of this node.
+- name: Restart Docker
+  ansible.builtin.systemd_service:
+    name: docker
+    state: restarted

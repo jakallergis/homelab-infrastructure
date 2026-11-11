@@ -18,3 +18,10 @@
   roles:
     - adguard_install
     - adguard_config
+
+- name: Configure the Docker hosts
+  hosts: swarm_managers
+  serial: 1
+  become: true
+  roles:
+    - docker_host

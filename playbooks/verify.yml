@@ -109,3 +109,46 @@
       ansible.builtin.uri:
         url: http://{{ ansible_host }}/
       delegate_to: localhost
+
+- name: Check the Docker Swarm
+  hosts: swarm_managers
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Read the Docker state
+      ansible.builtin.command: docker info --format json
+      register: verify_docker
+      changed_when: false
+      check_mode: false
+
+    # The pin "5:29.9.3-1~debian.13~trixie" is Docker version 29.9.3.
+    - name: Check the version and that this node is a manager in a full Swarm
+      ansible.builtin.assert:
+        that:
+          - verify_info.ServerVersion == docker_packages['docker-ce'].split(':')[1].split('-')[0]
+          - verify_info.Swarm.LocalNodeState == 'active'
+          - verify_info.Swarm.ControlAvailable
+          - verify_info.Swarm.Managers == groups['swarm_managers'] | length
+          - verify_info.Swarm.Nodes == groups['swarm_managers'] | length
+        quiet: true
+      vars:
+        verify_info: "{{ verify_docker.stdout | from_json }}"
+
+    - name: Read the node list
+      ansible.builtin.command: docker node ls --format json
+      register: verify_nodes
+      changed_when: false
+      check_mode: false
+      run_once: true
+
+    - name: Check that all nodes are ready, with exactly one leader
+      ansible.builtin.assert:
+        that:
+          - verify_node_list | map(attribute='Status') | unique == ['Ready']
+          - verify_node_list | selectattr('ManagerStatus', '==', 'Leader') | list | length == 1
+          - verify_node_list | rejectattr('ManagerStatus', 'in', ['Leader', 'Reachable']) | list | length == 0
+          - verify_node_list | map(attribute='Hostname') | sort == groups['swarm_managers'] | sort
+        quiet: true
+      run_once: true
+      vars:
+        verify_node_list: "{{ verify_nodes.stdout_lines | map('from_json') | list }}"

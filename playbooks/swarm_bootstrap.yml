@@ -1,0 +1,82 @@
+---
+# Makes the Swarm once: the first manager in the inventory creates it, and the others join it as
+# managers, one at a time. A second run changes nothing. It never removes a node from the Swarm.
+# Run it after site.yml has installed Docker on all managers. In check mode, it only reads and checks
+# the states: it cannot read a join token from a Swarm that does not exist yet.
+- name: Read the Swarm state of each manager
+  hosts: swarm_managers
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Read the Docker state
+      ansible.builtin.command: docker info --format json
+      register: swarm_bootstrap_info
+      changed_when: false
+      check_mode: false
+
+    - name: Keep the Swarm state of this node
+      ansible.builtin.set_fact:
+        swarm_bootstrap_state: "{{ (swarm_bootstrap_info.stdout | from_json).Swarm.LocalNodeState }}"
+
+    # Any other state (for example, docker01 outside a Swarm that the others are in) needs a person.
+    - name: Check that the states are a new Swarm or a complete one
+      ansible.builtin.assert:
+        that:
+          - swarm_bootstrap_states | difference(['inactive', 'active']) | length == 0
+          - swarm_bootstrap_states[0] == 'active' or swarm_bootstrap_states | unique == ['inactive']
+        fail_msg: "Unexpected Swarm states {{ swarm_bootstrap_states }}. Fix them by hand first."
+        quiet: true
+      run_once: true
+      vars:
+        swarm_bootstrap_states: >-
+          {{ groups['swarm_managers'] | map('extract', hostvars, 'swarm_bootstrap_state') | list }}
+
+- name: Create the Swarm on the first manager
+  hosts: swarm_managers[0]
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Create the Swarm
+      ansible.builtin.command: docker swarm init --advertise-addr {{ ansible_host }}
+      when: swarm_bootstrap_state == 'inactive'
+      changed_when: true
+
+    # The token lets a machine join as a manager. It is never shown or written to a file.
+    - name: Read the manager join token
+      ansible.builtin.command: docker swarm join-token --quiet manager
+      register: swarm_bootstrap_token
+      changed_when: false
+      when: not ansible_check_mode
+      no_log: true
+
+- name: Join the other managers, one at a time
+  hosts: swarm_managers[1:]
+  serial: 1
+  gather_facts: false
+  become: true
+  vars:
+    swarm_bootstrap_first: "{{ groups['swarm_managers'][0] }}"
+  tasks:
+    - name: Join the Swarm as a manager
+      ansible.builtin.command: >-
+        docker swarm join --advertise-addr {{ ansible_host }}
+        --token {{ hostvars[swarm_bootstrap_first].swarm_bootstrap_token.stdout }}
+        {{ hostvars[swarm_bootstrap_first].ansible_host }}:2377
+      when: swarm_bootstrap_state == 'inactive' and not ansible_check_mode
+      changed_when: true
+      no_log: true
+
+    - name: Read the Docker state again
+      ansible.builtin.command: docker info --format json
+      register: swarm_bootstrap_joined
+      changed_when: false
+      check_mode: false
+
+    # ControlAvailable is true only on a manager that is part of the Raft group.
+    - name: Check that this node is now a manager
+      ansible.builtin.assert:
+        that:
+          - (swarm_bootstrap_joined.stdout | from_json).Swarm.LocalNodeState == 'active'
+          - (swarm_bootstrap_joined.stdout | from_json).Swarm.ControlAvailable
+        quiet: true
+      when: not ansible_check_mode
