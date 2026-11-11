@@ -73,7 +73,7 @@ has to scroll back.
    `.31`/`.32`.
 5. **DNS.** AdGuard Home on `dns01`/`dns02` (unprivileged LXCs), wildcard `*.lab.krikri.dev` →
    `192.168.0.30`, upstream Cloudflare and Quad9 over DoT or DoH. Verify both resolve independently.
-   Roles `adguard_install` and `adguard_config` are coded, not applied. See `docs/runbooks/dns.md`.
+   Roles `adguard_install` and `adguard_config` are applied on `dns01`, not yet on `dns02`. See `docs/runbooks/dns.md`.
    Then the owner changes the router's DHCP DNS to
    `.31`/`.32`, and you add Tailscale split DNS.
 6. **Docker hosts and Swarm.** A `docker_host` role (Engine + Compose plugin from Docker's repo,

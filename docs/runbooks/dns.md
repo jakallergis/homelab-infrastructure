@@ -10,7 +10,7 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 
 ## Current state
 
-- Coded, not applied.
+- `dns01`: applied, verified, idempotent, and the web UI login works. `dns02`: not applied.
 - The router's DHCP still gives `192.168.0.1` as DNS. Tailscale split DNS is not set.
 
 ## How it is built
