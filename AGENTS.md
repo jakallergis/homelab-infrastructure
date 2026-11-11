@@ -63,8 +63,7 @@ has to scroll back.
 
 1. **Repo foundation.** Done.
 2. **Proxmox base.** Done. See `docs/runbooks/proxmox.md`.
-3. **Remote access.** Done, except split DNS, which comes after step 5. See
-   `docs/runbooks/tailscale.md`. Set up Ansible Vault at the first milestone that needs a secret.
+3. **Remote access.** Done, with split DNS for `lab.krikri.dev`. See `docs/runbooks/tailscale.md`. Set up Ansible Vault at the first milestone that needs a secret.
 4. **Guest provisioning with OpenTofu** (`bpg/proxmox`). Code is in `tofu/`, run through `tofu/run.sh`.
    Cloud-Init sets the static IP, hostname, user `john`, password and installs `qemu-guest-agent`. The
    image is on each node's local storage (no cross-node cloning). A guest is provisioned once the
@@ -75,7 +74,7 @@ has to scroll back.
    `192.168.0.30`, upstream Cloudflare and Quad9 over DoT or DoH. Verify both resolve independently.
    Roles `adguard_install` and `adguard_config` are applied on both. Ansible writes only the starting
    config; after that, the web UI owns it. See `docs/runbooks/dns.md`.
-   The router's DHCP DNS is `.31`/`.32`. Tailscale split DNS is next.
+   The router's DHCP DNS is `.31`/`.32`, and Tailscale split DNS uses them. Done.
 6. **Docker hosts and Swarm.** A `docker_host` role (Engine + Compose plugin from Docker's repo,
    pinned), Swarm init/join as a separate bootstrap step, 3 managers.
 7. **Swarm stacks.** Traefik (2 replicas, HTTP entrypoint on ingress `:18080`, no ACME, trusts forwarded

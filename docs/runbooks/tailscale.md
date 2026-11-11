@@ -14,7 +14,11 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 - Both routers have `accept-dns` and `accept-routes` off, so their DNS and LAN traffic stay local.
 - Failover drill passed: with `tailscaled` stopped on `pve02`, a device off the LAN reached `pve01`
   through `pve03`.
-- Split DNS is not set up yet. It comes after the DNS milestone.
+- Split DNS (set by hand in the admin console, DNS page, since 2026-11-11): `lab.krikri.dev` goes to
+  `192.168.0.31` and `192.168.0.32`, with "Restrict to domain" on. No global nameservers, and
+  "Override DNS servers" is off. Verified off the LAN: `test.lab.krikri.dev` resolved to
+  `192.168.0.30`, and the AdGuard query log showed the query from `192.168.0.13` (the routers
+  rewrite the source address). To undo it, delete the two nameserver entries.
 
 ## Check health
 

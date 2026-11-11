@@ -13,7 +13,10 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 - `dns01` and `dns02`: applied, verified, idempotent, and the web UI login works.
 - adguardhome-sync does not exist yet (milestone 7). Make each UI change on both servers.
 - Since 2026-11-11, the router's DHCP gives `192.168.0.31` and `192.168.0.32` as DNS. To undo it, set
-  the router's DHCP DNS back to `192.168.0.1`. Tailscale split DNS is not set.
+  the router's DHCP DNS back to `192.168.0.1`.
+- Tailscale split DNS sends `lab.krikri.dev` to both servers (see `docs/runbooks/tailscale.md`). In
+  the query log, tailnet clients show as `192.168.0.12` or `192.168.0.13`, because the routers
+  rewrite the source address. `ratelimit: 0` keeps them from being limited as one client.
 
 ## How it is built
 
