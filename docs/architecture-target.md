@@ -136,7 +136,7 @@ spread so that losing any one node leaves at least one member of each pair runni
 | Proxmox host OS, cluster settings, Tailscale | **Ansible** | `tailscale_router` role changes one router per run |
 | Debian guest OS and host services | **Ansible** | Roles split into install / TLS & secrets / configuration / read-only verification |
 | Swarm stacks and their configs | **Git stack files**, one deploy path | Pinned images, versioned Swarm configs, secrets outside Git |
-| AdGuard configuration | Git (declared settings) + sync to `dns02` | |
+| AdGuard configuration | Git (starting config) + web UI on `dns01` + sync to `dns02` | Ansible writes the config only on a new server; after that the UI owns it |
 | Secrets | `ansible-vault` (or equivalent) | Vault password never in Git; Ansible tasks touching secrets use `no_log` |
 | CI | GitHub Actions | Lint, syntax, render and unit tests only; no access to the LAN or the tailnet |
 | Data | Backups (below) | Git and DNS sync are not backups |

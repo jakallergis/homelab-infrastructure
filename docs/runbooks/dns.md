@@ -10,7 +10,8 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 
 ## Current state
 
-- `dns01`: applied, verified, idempotent, and the web UI login works. `dns02`: not applied.
+- `dns01` and `dns02`: applied, verified, idempotent, and the web UI login works.
+- adguardhome-sync does not exist yet (milestone 7). Make each UI change on both servers.
 - The router's DHCP still gives `192.168.0.1` as DNS. Tailscale split DNS is not set.
 
 ## How it is built
@@ -18,20 +19,31 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 | Item | Where |
 |---|---|
 | Version and checksums | `inventory/group_vars/dns.yml` |
-| Upstream and bootstrap servers | `inventory/group_vars/dns.yml` |
+| Starting upstream and bootstrap servers | `inventory/group_vars/dns.yml` |
 | Program | `/opt/AdGuardHome/<version>/AdGuardHome/AdGuardHome`, owned by root |
 | Configuration and data | `/var/lib/adguardhome/`, owned by the user `adguardhome`, mode `0700` |
 | Service | `adguardhome.service`, runs as `adguardhome` with only `CAP_NET_BIND_SERVICE` |
 | Web UI | `http://192.168.0.31/` and `http://192.168.0.32/`, user `admin`, LAN only, plain HTTP |
 | Admin password hash | `secrets/dns.yml` (`adguard_admin_password_hash`), encrypted with Vault |
 
-The admin password itself is in the owner's password manager. To replace it, create `secrets/dns.yml`
-again (below) and run the play.
+The admin password itself is in the owner's password manager.
 
-**Git owns the configuration.** `roles/adguard_config` writes the whole file. AdGuard Home writes the
+## Who owns the settings
+
+| What | Owner |
+|---|---|
+| Starting configuration: ports, admin user, upstreams, the `*.lab.krikri.dev` rewrite | Git. `roles/adguard_config` writes it only when `/var/lib/adguardhome/AdGuardHome.yaml` does not exist |
+| All later changes (filters, blocking, clients, rewrites, upstreams) | The web UI of `dns01`. Ansible does not overwrite them |
+| Copy from `dns01` to `dns02` | adguardhome-sync (milestone 7). Until then, change both UIs |
+| The lab wildcard and public names still work | `verify.yml` (read-only) checks it on each server |
+| Recovery of UI changes | Backups (milestone 10). Without a backup, a rebuilt server starts from the Git config |
+
+A change to the template or to `dns.yml` reaches only new or reset servers. AdGuard Home writes the
 file back each time it starts, so the template is AdGuard Home's own output for the pinned version.
-Changes in the web UI are lost at the next Ansible run. `make test` starts the pinned version on local
-ports, checks the wildcard answer, and checks that AdGuard Home leaves the rendered file unchanged.
+`make test` starts the pinned version on local ports, checks the wildcard answer, and checks that
+AdGuard Home leaves the rendered file unchanged.
+
+The Vault hash is also used only by new or reset servers. The web UI cannot change the password.
 
 ## Create the admin password hash
 
@@ -72,5 +84,18 @@ dig +short @192.168.0.32 test.lab.krikri.dev
    `inventory/group_vars/dns.yml`.
 2. Run `make test`. If AdGuard Home rewrites the file, the new version writes a different format:
    start it once on a copy of the rendered file and update the template from its output.
-3. Apply to `dns01`, verify, then `dns02`. The old release stays in `/opt/AdGuardHome/` for a rollback:
-   set the old version again and apply.
+3. Before the apply, copy `/var/lib/adguardhome/AdGuardHome.yaml` on each server. The new version can
+   change the file's format at its first start, and an older version may not read it again.
+4. Apply to `dns01`, verify, then `dns02`. The old release stays in `/opt/AdGuardHome/` for a rollback:
+   put the copy back, set the old version again and apply.
+
+## Reset a server to the Git configuration
+
+This deletes every change made in that server's web UI. It is a live action that needs approval each
+time. Reset one server at a time, and verify it before the other.
+
+```sh
+ssh -t john@192.168.0.32 'sudo systemctl stop adguardhome && sudo rm /var/lib/adguardhome/AdGuardHome.yaml'
+ansible-playbook playbooks/site.yml --limit dns02 --ask-pass --ask-become-pass --vault-password-file "$HOMELAB_PRIVATE_DIR/vault-pass"
+ansible-playbook playbooks/verify.yml --limit dns02
+```

@@ -1,8 +1,9 @@
 {#
-AdGuard Home writes this file back each time it starts, without comments. This template is
-AdGuard Home's own output for the pinned version, so the file stays the same and Ansible shows no
-change. Write comments as Jinja comments at column 0: YAML comments would be removed and cause a change.
-Changes made in the web UI are lost at the next Ansible run. Change this template instead.
+The starting configuration of a new server. Ansible writes it only when the server has no
+configuration. After that, the web UI owns the file, so a change here does not reach existing servers.
+AdGuard Home writes this file back each time it starts, without comments. This template is AdGuard
+Home's own output for the pinned version, so the first start leaves it unchanged (make test checks
+this). Write comments as Jinja comments at column 0.
 #}
 http:
   pprof:

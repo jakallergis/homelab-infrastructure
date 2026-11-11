@@ -1,5 +1,6 @@
 ---
-# Writes the whole AdGuard Home configuration from Git and starts the service.
+# Writes the starting configuration of AdGuard Home and starts the service. After the first install,
+# the web UI owns the configuration: Ansible does not write the file again while it exists.
 # A task, not vars_files: the syntax check in CI has no Vault password.
 - name: Read the admin password hash from Vault
   ansible.builtin.include_vars:
@@ -8,10 +9,11 @@
 
 # --check-config finds YAML errors and wrong value types, but not misspelled keys.
 # no_log also hides the diff, because the file contains the password hash.
-- name: Write the configuration
+- name: Write the starting configuration if there is none
   ansible.builtin.template:
     src: AdGuardHome.yaml.j2
     dest: /var/lib/adguardhome/AdGuardHome.yaml
+    force: false
     owner: adguardhome
     group: adguardhome
     mode: "0600"
