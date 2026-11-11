@@ -12,7 +12,8 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 
 - `dns01` and `dns02`: applied, verified, idempotent, and the web UI login works.
 - adguardhome-sync does not exist yet (milestone 7). Make each UI change on both servers.
-- The router's DHCP still gives `192.168.0.1` as DNS. Tailscale split DNS is not set.
+- Since 2026-11-11, the router's DHCP gives `192.168.0.31` and `192.168.0.32` as DNS. To undo it, set
+  the router's DHCP DNS back to `192.168.0.1`. Tailscale split DNS is not set.
 
 ## How it is built
 

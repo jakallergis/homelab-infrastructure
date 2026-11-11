@@ -75,8 +75,7 @@ has to scroll back.
    `192.168.0.30`, upstream Cloudflare and Quad9 over DoT or DoH. Verify both resolve independently.
    Roles `adguard_install` and `adguard_config` are applied on both. Ansible writes only the starting
    config; after that, the web UI owns it. See `docs/runbooks/dns.md`.
-   Then the owner changes the router's DHCP DNS to
-   `.31`/`.32`, and you add Tailscale split DNS.
+   The router's DHCP DNS is `.31`/`.32`. Tailscale split DNS is next.
 6. **Docker hosts and Swarm.** A `docker_host` role (Engine + Compose plugin from Docker's repo,
    pinned), Swarm init/join as a separate bootstrap step, 3 managers.
 7. **Swarm stacks.** Traefik (2 replicas, HTTP entrypoint on ingress `:18080`, no ACME, trusts forwarded
