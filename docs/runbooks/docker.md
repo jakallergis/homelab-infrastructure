@@ -12,7 +12,8 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 
 - `docker01`, `docker02`, `docker03`: Docker installed on 2026-11-12. `hello-world` ran, and a
   second check run shows `changed=0`.
-- The Swarm does not exist yet.
+- Swarm created on 2026-11-12: 3 managers, all `Ready`, `docker01` is the `Leader`. `verify.yml`
+  passes. A failover drill (one node down) has not been done.
 
 ## How it is built
 
