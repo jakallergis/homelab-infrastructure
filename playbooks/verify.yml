@@ -152,3 +152,61 @@
       run_once: true
       vars:
         verify_node_list: "{{ verify_nodes.stdout_lines | map('from_json') | list }}"
+
+- name: Check the Swarm stacks
+  hosts: swarm_managers[0]
+  gather_facts: false
+  become: true
+  vars:
+    verify_services:
+      - traefik_traefik
+      - portainer_agent
+      - portainer_portainer
+      - adguardhome-sync_sync
+  tasks:
+    - name: Read the services
+      ansible.builtin.command: docker service ls --format json
+      register: verify_service_ls
+      changed_when: false
+      check_mode: false
+
+    # Replicas looks like "2/2" or "2/2 (max 1 per node)": running/wanted.
+    - name: Check that each service runs all its replicas
+      ansible.builtin.assert:
+        that:
+          - verify_services | difference(verify_service_list | map(attribute='Name')) | length == 0
+          - verify_counts | map('first') | list == verify_counts | map('last') | list
+          - verify_counts | map('last') | map('int') | min > 0
+        quiet: true
+      vars:
+        verify_service_list: "{{ verify_service_ls.stdout_lines | map('from_json') | list }}"
+        verify_counts: >-
+          {{ verify_service_list | selectattr('Name', 'in', verify_services) | map(attribute='Replicas')
+             | map('regex_search', '^(\d+)/(\d+)', '\1', '\2') | list }}
+
+    # Host mode: only the nodes that run Traefik answer. A refused connection is a normal result here,
+    # so the request does not fail the task. The assertion after it checks the count.
+    - name: Ask each manager for the Traefik ping
+      ansible.builtin.uri:
+        url: http://{{ hostvars[item].ansible_host }}:18080/ping
+        timeout: 5
+      loop: "{{ groups['swarm_managers'] }}"
+      register: verify_ping
+      failed_when: false
+      delegate_to: localhost
+
+    - name: Check that exactly 2 managers run Traefik
+      ansible.builtin.assert:
+        that:
+          - verify_ping.results | selectattr('status', 'equalto', 200) | list | length == 2
+        quiet: true
+
+    - name: Ask for Portainer through Traefik
+      ansible.builtin.uri:
+        url: http://{{ verify_traefik_node }}:18080/
+        headers:
+          Host: portainer.{{ lab_domain }}
+      delegate_to: localhost
+      vars:
+        verify_traefik_node: >-
+          {{ (verify_ping.results | selectattr('status', 'equalto', 200) | first).url | urlsplit('hostname') }}

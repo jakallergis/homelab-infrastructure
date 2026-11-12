@@ -1,0 +1,43 @@
+---
+# Traefik routes HTTP from the edge nodes to Swarm services by host name. TLS ends at HAProxy.
+# Port 18080 is published in host mode, not through the ingress mesh: the mesh rewrites the source
+# address, and then Traefik could not tell the edge nodes from any other client.
+services:
+  traefik:
+    image: traefik:v3.7.18
+    command:
+      - --entryPoints.web.address=:18080
+      # Only the edge nodes may set X-Forwarded-For. tests/test_stacks.py compares this with the inventory.
+      - --entryPoints.web.forwardedHeaders.trustedIPs=192.168.0.33,192.168.0.34
+      - --providers.swarm.endpoint=unix:///var/run/docker.sock
+      - --providers.swarm.exposedByDefault=false
+      - --providers.swarm.network=traefik-public
+      # /ping answers 200 on port 18080. HAProxy uses it as the health check.
+      - --ping=true
+      - --ping.entryPoint=web
+    ports:
+      - target: 18080
+        published: 18080
+        protocol: tcp
+        mode: host
+    # Read-only for the file, not for the API: see "The Docker socket" in docs/runbooks/stacks.md.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-public
+    deploy:
+      replicas: 2
+      placement:
+        max_replicas_per_node: 1
+        # Only managers can read the Swarm API.
+        constraints:
+          - node.role == manager
+      update_config:
+        parallelism: 1
+        # The old task must free port 18080 before the new task on the same node can use it.
+        order: stop-first
+
+networks:
+  traefik-public:
+    name: traefik-public
+    driver: overlay

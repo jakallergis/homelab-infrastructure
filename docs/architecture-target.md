@@ -64,8 +64,8 @@ spread so that losing any one node leaves at least one member of each pair runni
     Traefik or the Swarm ingress mesh (the mesh source-NATs connections, which breaks HA's
     client-IP-bound login sessions). WebSockets are supported, and `X-Forwarded-For` /
     `X-Forwarded-Proto` are set consistently.
-  - everything else → Traefik through the Swarm ingress port `18080` on `docker01`–`03`, with
-    health checks.
+  - everything else → Traefik on port `18080` of `docker01`–`03`, with health checks on `/ping`.
+    Only the 2 nodes that run Traefik answer.
 - Each edge node obtains and renews **its own** certificate with Certbot using Let's Encrypt
   DNS-01 via the Cloudflare API (`krikri.dev` zone). Credentials are a scoped Cloudflare API token
   (DNS edit on `krikri.dev` only), injected from the secret store. A renewal deploy hook builds
@@ -77,9 +77,10 @@ spread so that losing any one node leaves at least one member of each pair runni
   these hosts.
 - Swarm stacks defined in Git, deployed by one single path (CLI from the repo, never also edited
   in a UI):
-  - **Traefik**: 2 replicas on different nodes, HTTP-only entrypoint published on ingress port
-    `18080`, overlay network `traefik-public`. No ACME in Traefik (TLS is at HAProxy). It trusts
-    forwarded headers only from `.33` and `.34`.
+  - **Traefik**: 2 replicas on different nodes, HTTP-only entrypoint on port `18080` published in
+    **host mode** (not through the ingress mesh, which rewrites the source address), overlay
+    network `traefik-public`. No ACME in Traefik (TLS is at HAProxy). It trusts forwarded headers
+    only from `.33` and `.34`.
   - **Portainer CE**: server plus a global agent. Server data is a local volume on one node, so
     it is a single-instance app. Portainer is for viewing and operations; it doesn't own stack
     definitions.

@@ -1,0 +1,31 @@
+---
+# Copies the AdGuard Home settings from dns01 to dns02 every 10 minutes. A change made only in the
+# dns02 web UI is overwritten. Users and passwords are not copied.
+services:
+  sync:
+    image: ghcr.io/bakito/adguardhome-sync:v0.9.6
+    # The image's default command expects a config file. These settings come from the environment.
+    command: run
+    environment:
+      ORIGIN_URL: http://192.168.0.31
+      ORIGIN_USERNAME: admin
+      ORIGIN_PASSWORD_FILE: /run/secrets/adguard_admin_password
+      REPLICA1_URL: http://192.168.0.32
+      REPLICA1_USERNAME: admin
+      REPLICA1_PASSWORD_FILE: /run/secrets/adguard_admin_password
+      CRON: "*/10 * * * *"
+      RUN_ON_START: "true"
+      # 0 turns off the sync's own web UI.
+      API_PORT: "0"
+      # DHCP is off on both servers. The router does DHCP.
+      FEATURES_DHCP_SERVER_CONFIG: "false"
+      FEATURES_DHCP_STATIC_LEASES: "false"
+    secrets:
+      - adguard_admin_password
+    deploy:
+      replicas: 1
+
+# Created by playbooks/stacks.yml from Vault.
+secrets:
+  adguard_admin_password:
+    external: true

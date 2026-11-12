@@ -1,0 +1,79 @@
+---
+# The one deploy path for the Swarm stacks in stacks/. It runs on the first manager. If docker01 is
+# down, run it with --limit docker02: any manager can deploy.
+- name: Deploy the Swarm stacks
+  hosts: swarm_managers[0]
+  gather_facts: false
+  become: true
+  vars:
+    # In this order: the later stacks use the network that the traefik stack makes.
+    stacks_names:
+      - traefik
+      - portainer
+      - adguardhome-sync
+  tasks:
+    # A task, not vars_files: the syntax check in CI has no Vault password.
+    - name: Read the passwords from Vault
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../secrets/stacks.yml"
+      no_log: true
+
+    - name: Read the Swarm secrets that exist
+      ansible.builtin.command: docker secret ls --format json
+      register: stacks_secrets
+      changed_when: false
+      check_mode: false
+
+    # A Swarm secret cannot change. To change one, see "Change a password" in docs/runbooks/stacks.md.
+    - name: Create the missing Swarm secrets
+      ansible.builtin.command:
+        cmd: docker secret create {{ item.name }} -
+        stdin: "{{ item.value }}"
+        stdin_add_newline: false
+      loop:
+        - name: portainer_admin_password
+          value: "{{ portainer_admin_password }}"
+        - name: adguard_admin_password
+          value: "{{ adguard_admin_password }}"
+      when: item.name not in stacks_secrets.stdout_lines | map('from_json') | map(attribute='Name')
+      changed_when: true
+      no_log: true
+
+    - name: Create the folder for the stack files
+      ansible.builtin.file:
+        path: /opt/stacks
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy the stack files
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../stacks/{{ item }}.yml"
+        dest: /opt/stacks/{{ item }}.yml
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ stacks_names }}"
+      register: stacks_files
+
+    - name: Read the stacks that exist
+      ansible.builtin.command: docker stack ls --format json
+      register: stacks_deployed
+      changed_when: false
+      check_mode: false
+
+    # --detach=false waits until the services run. --prune removes services that a file no longer has.
+    # After a failed deploy, the file on the host is already new: run again with -e stacks_force=true.
+    - name: Deploy each stack that changed or does not exist
+      ansible.builtin.command: >-
+        docker stack deploy --detach=false --prune
+        --compose-file /opt/stacks/{{ item.item }}.yml {{ item.item }}
+      loop: "{{ stacks_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: >-
+        stacks_force | default(false) | bool
+        or item is changed
+        or item.item not in stacks_deployed.stdout_lines | map('from_json') | map(attribute='Name')
+      changed_when: true

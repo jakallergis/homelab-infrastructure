@@ -78,9 +78,10 @@ has to scroll back.
 6. **Docker hosts and Swarm.** A `docker_host` role (Engine + Compose plugin from Docker's repo,
    pinned), Swarm init/join as a separate bootstrap step, 3 managers. Done: role `docker_host`,
    `playbooks/swarm_bootstrap.yml`, checks in `verify.yml`. See `docs/runbooks/docker.md`.
-7. **Swarm stacks.** Traefik (2 replicas, HTTP entrypoint on ingress `:18080`, no ACME, trusts forwarded
-   headers only from `.33`/`.34`), Portainer CE + agent, adguardhome-sync (`dns01` → `dns02`). One
-   deploy path from the repo; pinned image tags.
+7. **Swarm stacks.** Traefik (2 replicas, HTTP entrypoint `:18080` in host mode, no ACME, trusts
+   forwarded headers only from `.33`/`.34`), Portainer CE + agent, adguardhome-sync (`dns01` →
+   `dns02`). One deploy path from the repo; pinned image tags. Coded: `stacks/`,
+   `playbooks/stacks.yml`, checks in `verify.yml`. Not deployed yet. See `docs/runbooks/stacks.md`.
 8. **Edge pair.** Roles split by concern:
    - `edge_install`: packages; Keepalived masked.
    - `edge_tls`: Certbot + Cloudflare DNS-01, token from Vault, deploy hook, Let's Encrypt staging /
@@ -118,7 +119,8 @@ Remove each item once it is answered.
   The folder has no backup. A copy of `vault-pass` must be in the owner's password manager before the
   first `tofu apply`.
 - Secrets for OpenTofu: `secrets/tofu.env`, encrypted with Vault. The hash of `john`'s password is in
-  `secrets/guests.yml`, shared by OpenTofu and Ansible. The AdGuard Home admin hash is in `secrets/dns.yml`. The root password is typed at each run. See `docs/runbooks/proxmox.md`.
+  `secrets/guests.yml`, shared by OpenTofu and Ansible. The AdGuard Home admin hash is in `secrets/dns.yml`. The Portainer and AdGuard admin
+  passwords for the stacks are in `secrets/stacks.yml`. The root password is typed at each run. See `docs/runbooks/proxmox.md`.
 
 ## Technical notes
 
@@ -145,7 +147,7 @@ Remove each item once it is answered.
 - `curl -I` sends HEAD, and Home Assistant answers HEAD on `/` with 405. Test HA with GET and a real
   browser login.
 - Swarm's ingress routing mesh source-NATs traffic. That's why HA is proxied directly from HAProxy and
-  Traefik's trusted-proxy list contains only the edge IPs.
+  Traefik publishes `:18080` in host mode, so its trusted-proxy list (only the edge IPs) can work.
 - Proxmox clustering doesn't make single-instance guests highly available here (local storage). Don't
   present it as failover.
 - A Proxmox VIP problem can come from the guest NIC's `firewall=1` + IP filter. Check before enabling
