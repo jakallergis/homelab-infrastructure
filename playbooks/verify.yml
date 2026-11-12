@@ -194,6 +194,7 @@
       register: verify_ping
       failed_when: false
       delegate_to: localhost
+      become: false
 
     - name: Check that exactly 2 managers run Traefik
       ansible.builtin.assert:
@@ -207,6 +208,7 @@
         headers:
           Host: portainer.{{ lab_domain }}
       delegate_to: localhost
+      become: false
       vars:
         verify_traefik_node: >-
           {{ (verify_ping.results | selectattr('status', 'equalto', 200) | first).url | urlsplit('hostname') }}

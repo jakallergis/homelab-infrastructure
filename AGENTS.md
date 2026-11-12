@@ -134,6 +134,8 @@ Remove each item once it is answered.
   the full flags. Do not log in by hand.
 - The workstation is a VM on a MacBook. Its clock falls behind when the Mac sleeps, and `chrony` steps
   only in its first 3 updates unless `makestep 1 -1` is set.
+- A task with `delegate_to: localhost` keeps the play's `become: true` and asks for sudo on the
+  workstation. Set `become: false` on such tasks.
 - `failed_when: false` / `ignore_errors` hide real failures. Use them only with an explicit assertion
   afterwards.
 - Keepalived 2.x refuses track scripts unless `global_defs` has `enable_script_security` (and
