@@ -10,9 +10,9 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 
 ## Current state
 
-- `docker01`, `docker02`: Docker installed on 2026-11-12. `hello-world` ran, and a second check run
-  shows `changed=0`.
-- `docker03`: not installed yet. The Swarm does not exist yet.
+- `docker01`, `docker02`, `docker03`: Docker installed on 2026-11-12. `hello-world` ran, and a
+  second check run shows `changed=0`.
+- The Swarm does not exist yet.
 
 ## How it is built
 
