@@ -11,8 +11,8 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 ## Current state
 
 - `dns01` and `dns02`: applied, verified, idempotent, and the web UI login works.
-- adguardhome-sync (milestone 7) is coded but not deployed. Until it runs, make each UI change on
-  both servers. After that, change only `dns01`: the sync overwrites `dns02` every 10 minutes.
+- adguardhome-sync (milestone 7) is deployed. Change only `dns01`: the sync overwrites `dns02` every
+  10 minutes. See `docs/runbooks/stacks.md`.
 - Since 2026-11-11, the router's DHCP gives `192.168.0.31` and `192.168.0.32` as DNS. To undo it, set
   the router's DHCP DNS back to `192.168.0.1`.
 - Tailscale split DNS sends `lab.krikri.dev` to both servers (see `docs/runbooks/tailscale.md`). In
@@ -39,7 +39,7 @@ The admin password itself is in the owner's password manager.
 |---|---|
 | Starting configuration: ports, admin user, upstreams, the `*.lab.krikri.dev` rewrite | Git. `roles/adguard_config` writes it only when `/var/lib/adguardhome/AdGuardHome.yaml` does not exist |
 | All later changes (filters, blocking, clients, rewrites, upstreams) | The web UI of `dns01`. Ansible does not overwrite them |
-| Copy from `dns01` to `dns02` | adguardhome-sync (milestone 7). Until then, change both UIs |
+| Copy from `dns01` to `dns02` | adguardhome-sync, every 10 minutes (see `docs/runbooks/stacks.md`) |
 | The lab wildcard and public names still work | `verify.yml` (read-only) checks it on each server |
 | Recovery of UI changes | Backups (milestone 10). Without a backup, a rebuilt server starts from the Git config |
 

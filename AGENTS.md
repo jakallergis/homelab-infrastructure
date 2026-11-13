@@ -80,8 +80,8 @@ has to scroll back.
    `playbooks/swarm_bootstrap.yml`, checks in `verify.yml`. See `docs/runbooks/docker.md`.
 7. **Swarm stacks.** Traefik (2 replicas, HTTP entrypoint `:18080` in host mode, no ACME, trusts
    forwarded headers only from `.33`/`.34`), Portainer CE + agent, adguardhome-sync (`dns01` →
-   `dns02`). One deploy path from the repo; pinned image tags. Coded: `stacks/`,
-   `playbooks/stacks.yml`, checks in `verify.yml`. Not deployed yet. See `docs/runbooks/stacks.md`.
+   `dns02`). One deploy path from the repo; pinned image tags. Deployed: `stacks/`,
+   `playbooks/stacks.yml`, checks in `verify.yml`. Portainer login and first sync not checked yet. See `docs/runbooks/stacks.md`.
 8. **Edge pair.** Roles split by concern:
    - `edge_install`: packages; Keepalived masked.
    - `edge_tls`: Certbot + Cloudflare DNS-01, token from Vault, deploy hook, Let's Encrypt staging /

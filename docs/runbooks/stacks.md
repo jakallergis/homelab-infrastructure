@@ -11,7 +11,9 @@ export PATH=$HOME/.cache/homelab-infrastructure/venv/bin:$PATH
 
 ## Current state
 
-- Coded and tested offline only. No stack is deployed.
+- All three stacks are deployed. On 2026-11-13, `verify.yml` passed and `docker service ls` showed
+  every service with all its replicas. The Portainer login and the first sync to `dns02` are not
+  checked yet.
 
 ## The stacks
 
@@ -65,14 +67,25 @@ add `-e stacks_force=true`: the file on the host is already new, so the next run
 
 ## Open Portainer before the edge exists
 
-Until milestone 8, Portainer is plain HTTP on port `18080`, and the name points to `.30`, which
-does not answer yet. On the Mac:
+Until milestone 8, Portainer is plain HTTP on port `18080`, and its name points to `.30`, which
+does not answer yet. Editing `/etc/hosts` on the Mac needs admin rights, so tell only one browser
+where the name is:
 
-1. Find a node that runs Traefik: the verify run asks all 3, and 2 answer
-   `curl http://192.168.0.2X:18080/ping`.
-2. Add `192.168.0.2X portainer.lab.krikri.dev` to `/etc/hosts` (`sudo nano /etc/hosts`).
-3. Open `http://portainer.lab.krikri.dev:18080` and log in as `admin`.
-4. Remove the line when the edge works. If Traefik moves to another node, the line stops working.
+1. Find a node that runs Traefik. Two of `.21`, `.22` and `.23` answer `OK`:
+   `curl http://192.168.0.21:18080/ping`
+2. Check the route from the terminal. Use a node that answered. The page title must be Portainer:
+   `curl -s --resolve portainer.lab.krikri.dev:18080:192.168.0.21 http://portainer.lab.krikri.dev:18080/ | grep -i '<title>'`
+3. Start a separate Chrome with a resolver rule. It needs no admin rights and does not change your
+   normal Chrome:
+
+   ```sh
+   open -na "Google Chrome" --args --user-data-dir="$HOME/.chrome-lab" \
+     --host-resolver-rules="MAP portainer.lab.krikri.dev 192.168.0.21"
+   ```
+
+4. In that window, open `http://portainer.lab.krikri.dev:18080` and log in as `admin`.
+
+If Traefik moves to another node, use that node's IP. When the edge works, use the normal browser.
 
 ## The Docker socket
 
