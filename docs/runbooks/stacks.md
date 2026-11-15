@@ -67,25 +67,33 @@ add `-e stacks_force=true`: the file on the host is already new, so the next run
 
 ## Open Portainer before the edge exists
 
-Until milestone 8, Portainer is plain HTTP on port `18080`, and its name points to `.30`, which
-does not answer yet. Editing `/etc/hosts` on the Mac needs admin rights, so tell only one browser
-where the name is:
+`.dev` is on the browsers' HSTS preload list: a browser uses only HTTPS for every `*.krikri.dev`
+name, on every port, and does not let you skip the certificate warning. Traefik's port `18080` is
+plain HTTP, so no browser can open `portainer.lab.krikri.dev` until the edge serves HTTPS
+(milestone 8). Tools that are not browsers (`curl`, Ansible) are not affected.
 
-1. Find a node that runs Traefik. Two of `.21`, `.22` and `.23` answer `OK`:
-   `curl http://192.168.0.21:18080/ping`
-2. Check the route from the terminal. Use a node that answered. The page title must be Portainer:
-   `curl -s --resolve portainer.lab.krikri.dev:18080:192.168.0.21 http://portainer.lab.krikri.dev:18080/ | grep -i '<title>'`
-3. Start a separate Chrome with a resolver rule. It needs no admin rights and does not change your
-   normal Chrome:
+Until then, open Portainer through an SSH tunnel to the container. This changes nothing on the
+hosts. Portainer runs on `docker01`.
+
+1. Find the container's address on `docker_gwbridge` (the bridge that connects Swarm containers to
+   their host). It is the address in the subnet that the command prints first:
 
    ```sh
-   open -na "Google Chrome" --args --user-data-dir="$HOME/.chrome-lab" \
-     --host-resolver-rules="MAP portainer.lab.krikri.dev 192.168.0.21"
+   ssh -t john@192.168.0.21 'sudo docker network inspect docker_gwbridge --format "{{(index .IPAM.Config 0).Subnet}}"; sudo nsenter --net="$(sudo docker inspect --format "{{.NetworkSettings.SandboxKey}}" "$(sudo docker ps -q -f name=portainer_portainer)")" ip -4 -brief addr'
    ```
 
-4. In that window, open `http://portainer.lab.krikri.dev:18080` and log in as `admin`.
+2. Start the tunnel and keep it open. Put that address in place of `172.18.0.X`:
+   `ssh -N -L 9000:172.18.0.X:9000 john@192.168.0.21`
+3. Open `http://localhost:9000` and log in as `admin`. Stop the tunnel with Ctrl+C.
 
-If Traefik moves to another node, use that node's IP. When the edge works, use the normal browser.
+The address changes when the container starts again. Then do step 1 again.
+
+Check the Traefik route from the terminal (use a node that answers `/ping`). The page title must be
+Portainer:
+
+```sh
+curl -s --resolve portainer.lab.krikri.dev:18080:192.168.0.21 http://portainer.lab.krikri.dev:18080/ | grep -i '<title>'
+```
 
 ## The Docker socket
 

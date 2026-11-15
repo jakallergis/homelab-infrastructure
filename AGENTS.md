@@ -148,6 +148,9 @@ Remove each item once it is answered.
   set to the current user.
 - `curl -I` sends HEAD, and Home Assistant answers HEAD on `/` with 405. Test HA with GET and a real
   browser login.
+- `.dev` is on the HSTS preload list. Browsers open `*.lab.krikri.dev` only over HTTPS with a
+  valid certificate, so a browser test of a lab name works only through the edge. `curl` and Ansible
+  are not affected.
 - Swarm's ingress routing mesh source-NATs traffic. That's why HA is proxied directly from HAProxy and
   Traefik publishes `:18080` in host mode, so its trusted-proxy list (only the edge IPs) can work.
 - Proxmox clustering doesn't make single-instance guests highly available here (local storage). Don't
