@@ -82,7 +82,8 @@ hosts. Portainer runs on `docker01`.
    ssh -t john@192.168.0.21 'sudo docker network inspect docker_gwbridge --format "{{(index .IPAM.Config 0).Subnet}}"; sudo nsenter --net="$(sudo docker inspect --format "{{.NetworkSettings.SandboxKey}}" "$(sudo docker ps -q -f name=portainer_portainer)")" ip -4 -brief addr'
    ```
 
-2. Start the tunnel and keep it open. Put that address in place of `172.18.0.X`:
+2. On the machine that runs the browser, start the tunnel and keep it open. Put that address in
+   place of `172.18.0.X`:
    `ssh -N -L 9000:172.18.0.X:9000 john@192.168.0.21`
 3. Open `http://localhost:9000` and log in as `admin`. Stop the tunnel with Ctrl+C.
 
